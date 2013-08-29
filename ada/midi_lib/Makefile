@@ -20,16 +20,12 @@ MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -gnaty0 -gnaty-rb
 
 all:	lib obj libmidi.a
 
-libmidi.a: midi-receiver.adb midi-receiver.ads midi-transmitter.adb midi-transmitter.ads midi.adb midi.ads
+libmidi.a: src/midi-receiver.adb src/midi-receiver.ads src/midi-transmitter.adb src/midi-transmitter.ads \
+	   src/midi.adb src/midi.ads
 	$(ADA) $(MFLAGS) -Pmidi_lib.gpr
 
-#	rm -f obj/*.o
-#	rm -f midi_test.o b~midi_test.* midi_test.elf midi_test.ali
-#	rm -f midi.o midi-receiver.o midi-transmitter.o
-#	rm -f midi.ali midi-receiver.ali midi-transmitter.ali
-
 test:	midi_test.gpr midi_test.adb
-	$(ADA) $(MFLAGS) -aL./lib -Pmidi_test.gpr -largs -L./lib -lmidi
+	$(ADA) $(MFLAGS) -aI./src -aL./lib -Pmidi_test.gpr -largs -L./lib -lmidi
 	$(OCP) -O ihex -R .eeprom midi_test.elf midi_test.hex
 	rm midi_test.elf
 
@@ -46,3 +42,8 @@ clean:
 clobber: clean
 	rm -fr ./obj ./lib
 	rm -f *.map lib/libmidi.a lib/*.ali lib/*.o
+
+burn:	midi_test.hex
+	$(AVRDUDE) -c arduino -p atmega328p -P $(PORT) -b 115200 -U flash:w:midi_test.hex
+
+# End
