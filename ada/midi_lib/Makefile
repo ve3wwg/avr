@@ -7,6 +7,7 @@ GPR := midi.gpr
 
 AR	= avr-ar
 ADA	= avr-gnatmake
+OCP	= avr-objcopy
 
 # Optimization level, can be [0, 1, 2, 3, s]. 
 #     0 = turn off optimization. s = optimize for size.
@@ -17,7 +18,7 @@ OPT = s
 # MFLAGS = -O$(OPT) -XMCU=$(MCU) -P$(GPR) --RTS=$(ADA_RTS)
 MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -gnaty0 -gnaty-rb
 
-all:	libmidi.a
+all:	lib obj libmidi.a
 
 libmidi.a: midi-receiver.adb midi-receiver.ads midi-transmitter.adb midi-transmitter.ads midi.adb midi.ads
 	$(ADA) $(MFLAGS) -Pmidi_lib.gpr
@@ -29,12 +30,19 @@ libmidi.a: midi-receiver.adb midi-receiver.ads midi-transmitter.adb midi-transmi
 
 test:	midi_test.gpr midi_test.adb
 	$(ADA) $(MFLAGS) -aL./lib -Pmidi_test.gpr -largs -L./lib -lmidi
+	$(OCP) -O ihex -R .eeprom midi_test.elf midi_test.hex
+	rm midi_test.elf
+
+lib:	
+	mkdir ./lib
+
+obj:
+	mkdir ./obj
 
 clean:
 	rm -f *.hex *.eep *.elf *.map *.sym *.lss *.ali b~*.ad? *.o
 	rm -f errs.t 
 
 clobber: clean
-	rm -fr obj
-	mkdir ./obj
+	rm -fr ./obj ./lib
 	rm -f *.map lib/libmidi.a lib/*.ali lib/*.o
