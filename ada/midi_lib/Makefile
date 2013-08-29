@@ -2,9 +2,6 @@
 # MCU := atmega169
 MCU := atmega328p
 
-ADA_TARGETS := midi_test
-GPR := midi.gpr
-
 AR	= avr-ar
 ADA	= avr-gnatmake
 OCP	= avr-objcopy
@@ -13,10 +10,10 @@ OCP	= avr-objcopy
 #     0 = turn off optimization. s = optimize for size.
 #     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
 # Setting OPT here overrides the setting in the GPR file for Ada.
+
 OPT = s
 
-# MFLAGS = -O$(OPT) -XMCU=$(MCU) -P$(GPR) --RTS=$(ADA_RTS)
-MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -gnaty0 -gnaty-rb
+MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -C -gnaty0 -gnaty-rb
 
 all:	lib obj libmidi.a
 
@@ -25,9 +22,9 @@ libmidi.a: src/midi-receiver.adb src/midi-receiver.ads src/midi-transmitter.adb 
 	$(ADA) $(MFLAGS) -Pmidi_lib.gpr
 
 test:	midi_test.gpr midi_test.adb
-	$(ADA) $(MFLAGS) -aI./src -aL./lib -Pmidi_test.gpr -largs -L./lib -lmidi
+	$(ADA) $(MFLAGS) -aI./src -aL./lib -Pmidi_test.gpr -largs -M -largs -L./lib -lmidi
 	$(OCP) -O ihex -R .eeprom midi_test.elf midi_test.hex
-	rm midi_test.elf
+	@rm midi_test.elf midi_test.map midi_test.ali b~* midi_test.o
 
 lib:	
 	mkdir ./lib
