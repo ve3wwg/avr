@@ -238,24 +238,24 @@ private
     -- won't waste code space in your AVR program memory. They're
     -- all 1-liners anyway.
     ------------------------------------------------------------------
-    pragma inline( Register_Note_On_Off );
-    pragma inline( Register_Pressure );
-    pragma inline( Register_All_Sounds_Off );
-    pragma inline( Register_Reset_Controller );
-    pragma inline( Register_Local_Controller );
-    pragma inline( Register_All_Notes_Off );
-    pragma inline( Register_Omni );
-    pragma inline( Register_Mono );
-    pragma inline( Register_Unsupported_Control );
-    pragma inline( Register_Program );
-    pragma inline( Register_Channel_Pressure );
-    pragma inline( Register_Bend );
-    pragma inline( Register_Sysex );
-    pragma inline( Register_Unsupported );
-    pragma inline( Register_Song_Pos );
-    pragma inline( Register_Song_Selection );
-    pragma inline( Register_Tune_Request );
-    pragma inline( Register_Realtime );
-    pragma inline( Register_Idle );
+    pragma Inline( Register_Note_On_Off );
+    pragma Inline( Register_Pressure );
+    pragma Inline( Register_All_Sounds_Off );
+    pragma Inline( Register_Reset_Controller );
+    pragma Inline( Register_Local_Controller );
+    pragma Inline( Register_All_Notes_Off );
+    pragma Inline( Register_Omni );
+    pragma Inline( Register_Mono );
+    pragma Inline( Register_Unsupported_Control );
+    pragma Inline( Register_Program );
+    pragma Inline( Register_Channel_Pressure );
+    pragma Inline( Register_Bend );
+    pragma Inline( Register_Sysex );
+    pragma Inline( Register_Unsupported );
+    pragma Inline( Register_Song_Pos );
+    pragma Inline( Register_Song_Selection );
+    pragma Inline( Register_Tune_Request );
+    pragma Inline( Register_Realtime );
+    pragma Inline( Register_Idle );
 
 end MIDI.Receiver;

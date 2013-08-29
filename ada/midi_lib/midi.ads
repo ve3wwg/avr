@@ -18,10 +18,10 @@ package MIDI is
 
     type Unsigned_16 is mod 2 ** 16;
     for Unsigned_16'Size use 16;
-            
+
     type Unsigned_32 is mod 2 ** 32;
     for Unsigned_32'Size use 32;
-      
+
     ------------------------------------------------------------------
     -- MIDI Data Types
     ------------------------------------------------------------------
@@ -36,12 +36,12 @@ package MIDI is
 
     type Bend_Type          is                  range -2**14 .. 2**14;
     for Bend_Type'Size      use 16;
-    
+
     type Manufacturer_Type  is new Unsigned_8   range 0..127;
     type Beats_Type         is new Unsigned_16  range 0..2**14;
     type Song_Selection_Type is new Unsigned_8  range 0..127;
     type Status_Type        is new Unsigned_8;
-    
+
     type U8_Array is array(Unsigned_16 range <>) of Unsigned_8;
     for U8_Array'Component_Size use 8;
 
@@ -60,7 +60,7 @@ package MIDI is
 
     type Idle_Proc         is access
         procedure;
-        
+
     ------------------------------------------------------------------
     -- Initialization for MIDI I/O
     ------------------------------------------------------------------
@@ -298,7 +298,7 @@ private
 
     type Integer_16 is range -2 ** 15 .. 2 ** 15 - 1;
     for Integer_16'Size use 16;
-                
+
     ------------------------------------------------------------------
     -- I/O Context Object
     ------------------------------------------------------------------

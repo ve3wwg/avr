@@ -122,7 +122,7 @@ package body MIDI.Transmitter is
 
         Write(Context,Msg);
 
-    end;
+    end Note_On_Off;
 
     ------------------------------------------------------------------
     -- Set Pressure
@@ -142,7 +142,7 @@ package body MIDI.Transmitter is
 
         Write(Context,Msg);
 
-    end;
+    end Pressure;
 
     ------------------------------------------------------------------
     -- All Sounds Off
@@ -154,7 +154,7 @@ package body MIDI.Transmitter is
     ) is
     begin
         Control_Cmd(Context,Channel,MC_CTL_ALLS_OFF,Value);
-    end;
+    end All_Sounds_Off;
 
     ------------------------------------------------------------------
     -- Reset Controller
@@ -166,7 +166,7 @@ package body MIDI.Transmitter is
     ) is
     begin
         Control_Cmd(Context,Channel,MC_CTL_RESET_C,Value);
-    end;
+    end Reset_Controller;
 
     ------------------------------------------------------------------
     -- Local Controller
@@ -178,7 +178,7 @@ package body MIDI.Transmitter is
     ) is
     begin
         Control_Cmd(Context,Channel,MC_CTL_LOCAL_C,Value);
-    end;
+    end Local_Controller;
 
     ------------------------------------------------------------------
     -- All Notes Off
@@ -190,7 +190,7 @@ package body MIDI.Transmitter is
     ) is
     begin
         Control_Cmd(Context,Channel,MC_CTL_ALLN_OFF,Value);
-    end;
+    end All_Notes_Off;
 
     ------------------------------------------------------------------
     -- Omni On/Off
@@ -207,7 +207,7 @@ package body MIDI.Transmitter is
         else
             Control_Cmd(Context,Channel,MC_CTL_OMNI_OFF,Value);
         end if;
-    end;
+    end Omni;
 
     ------------------------------------------------------------------
     -- Mono On/Off
@@ -224,7 +224,7 @@ package body MIDI.Transmitter is
         else
             Control_Cmd(Context,Channel,MC_CTL_MONO_OFF,Value);
         end if;
-    end;
+    end Mono;
 
     ------------------------------------------------------------------
     -- Set Program
@@ -236,7 +236,7 @@ package body MIDI.Transmitter is
     ) is
     begin
         Cmd2(Context,MC_PROGRAM_CHG,Channel,Unsigned_8(Program));
-    end;
+    end Program;
 
     ------------------------------------------------------------------
     -- Set Channel Pressure
@@ -248,7 +248,7 @@ package body MIDI.Transmitter is
     ) is
     begin
         Cmd2(Context,MC_CH_PRESSURE,Channel,Unsigned_8(Pressure));
-    end;
+    end Channel_Pressure;
 
     ------------------------------------------------------------------
     -- Bend
@@ -266,7 +266,7 @@ package body MIDI.Transmitter is
         Put_U16(Unsigned_16(Signed_Bend),Msg(1..2));
         Write(Context,Msg);
         
-    end;
+    end Bend;
 
     ------------------------------------------------------------------
     -- Sysex Message
@@ -289,7 +289,7 @@ package body MIDI.Transmitter is
 
         Context.Transmit_Byte(MC_SYS_ENDX);
 
-    end;
+    end Sysex;
 
     ------------------------------------------------------------------
     -- Set Song Position
@@ -305,7 +305,7 @@ package body MIDI.Transmitter is
         Put_U16(Unsigned_16(Beats),Msg(1..2));
         Write(Context,Msg);
 
-    end;
+    end Song_Pos;
 
     ------------------------------------------------------------------
     -- Set Song Selection
@@ -320,7 +320,7 @@ package body MIDI.Transmitter is
         Msg(0) := Cmd(MC_SYS,MC_SYS_SNGSEL);
         Msg(1) := Unsigned_8(Selection);
         Write(Context,Msg);
-    end;
+    end Song_Selection;
 
     ------------------------------------------------------------------
     -- Issue Tune Request
@@ -330,7 +330,7 @@ package body MIDI.Transmitter is
     ) is
     begin
         Context.Transmit_Byte(Cmd(MC_SYS,MC_SYS_TREQ));
-    end;
+    end Tune_Request;
 
     ------------------------------------------------------------------
     -- Issue a Realtime Command
@@ -351,6 +351,6 @@ package body MIDI.Transmitter is
                 null;
         end case;
 
-    end;
+    end Realtime;
 
 end MIDI.Transmitter;

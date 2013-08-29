@@ -1,4 +1,5 @@
-with Interfaces;           use Interfaces;
+-- with Interfaces;           use Interfaces;
+
 with MIDI.Receiver;
 with MIDI.Transmitter;
 

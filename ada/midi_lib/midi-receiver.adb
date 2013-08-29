@@ -76,7 +76,7 @@ package body MIDI.Receiver is
 
     ------------------------------------------------------------------
     -- INTERNAL - Execute one MIDI message :
-    -- 
+    --
     -- Note that for SysEx, only the first 2 bytes have been
     -- fetched (status + Manuf-ID).
     ------------------------------------------------------------------
@@ -244,10 +244,10 @@ package body MIDI.Receiver is
                                 else
                                     Truncated := True;
                                 end if;
-        
+
                                 exit when ( Byte and 16#80# ) /= 0;
                             end loop;
-        
+
                             if Obj.Sysex /= null and then X > Sysex'First then
                                 Obj.Sysex(Manufacturer_ID,Sysex(0..X-1),Truncated);
                             end if;
@@ -320,7 +320,7 @@ package body MIDI.Receiver is
     function Surrogate_Poll return Boolean is
     begin
         return True;
-    end;
+    end Surrogate_Poll;
 
     ------------------------------------------------------------------
     -- Receive a MIDI Message
@@ -352,9 +352,9 @@ package body MIDI.Receiver is
             Read(Obj,Byte);                             -- Receive one byte
 
             if ( Byte and 16#80# ) /= 0 then            -- Is this a command (status) byte?
-	        FIFO(0) := Byte;                        -- Yes, save status byte
+                FIFO(0) := Byte;                        -- Yes, save status byte
 
-	        if Byte >= MC_SYS_RT or else Byte = ( MC_SYS or MC_SYS_TREQ ) then
+                if Byte >= MC_SYS_RT or else Byte = ( MC_SYS or MC_SYS_TREQ ) then
                     Event(Obj,FIFO(0..0));              -- Real time message
                     return;
                 else
@@ -429,92 +429,92 @@ package body MIDI.Receiver is
     procedure Register_Note_On_Off(Obj : in out Recv_Context; Callback : Note_On_Off_Proc) is
     begin
         Obj.Note_On_Off := Callback;
-    end;
+    end Register_Note_On_Off;
     
     procedure Register_Pressure(Obj : in out Recv_Context; Callback : Pressure_Proc) is
     begin
         Obj.Pressure := Callback;
-    end;
+    end Register_Pressure;
     
     procedure Register_All_Sounds_Off(Obj : in out Recv_Context; Callback : Control_Proc) is
     begin
         Obj.All_Sounds_Off := Callback;
-    end;
+    end Register_All_Sounds_Off;
     
     procedure Register_Reset_Controller(Obj : in out Recv_Context; Callback : Control_Proc) is
     begin
         Obj.Reset_Controller := Callback;
-    end;
+    end Register_Reset_Controller;
     
     procedure Register_Local_Controller(Obj : in out Recv_Context; Callback : Control_Proc) is
     begin
         Obj.Local_Controller := Callback;
-    end;
+    end Register_Local_Controller;
     
     procedure Register_All_Notes_Off(Obj : in out Recv_Context; Callback : Control_Proc) is
     begin
         Obj.All_Notes_Off := Callback;
-    end;
+    end Register_All_Notes_Off;
     
     procedure Register_Omni(Obj : in out Recv_Context; Callback : Omni_Proc) is
     begin
         Obj.Omni := Callback;
-    end;
+    end Register_Omni;
     
     procedure Register_Mono(Obj : in out Recv_Context; Callback : Mono_Proc) is
     begin
         Obj.Mono := Callback;
-    end;
+    end Register_Mono;
     
     procedure Register_Unsupported_Control(Obj : in out Recv_Context; Callback : Unsupported_Control_Proc) is
     begin
         Obj.Unsupported_Control := Callback;
-    end;
+    end Register_Unsupported_Control;
     
     procedure Register_Program(Obj : in out Recv_Context; Callback : Program_Proc) is
     begin
         Obj.Program := Callback;
-    end;
+    end Register_Program;
     
     procedure Register_Channel_Pressure(Obj : in out Recv_Context; Callback : Channel_Pressure_Proc) is
     begin
         Obj.Channel_Pressure := Callback;
-    end;
+    end Register_Channel_Pressure;
     
     procedure Register_Bend(Obj : in out Recv_Context; Callback : Bend_Proc) is
     begin
         Obj.Bend := Callback;
-    end;
+    end Register_Bend;
     
     procedure Register_Sysex(Obj : in out Recv_Context; Callback : Sysex_Proc) is
     begin
         Obj.Sysex := Callback;
-    end;
+    end Register_Sysex;
     
     procedure Register_Unsupported(Obj : in out Recv_Context; Callback : Unsupported_Proc) is
     begin
         Obj.Unsupported := Callback;
-    end;
+    end Register_Unsupported;
     
     procedure Register_Song_Pos(Obj : in out Recv_Context; Callback : Song_Position_Proc) is
     begin
         Obj.Song_Pos := Callback;
-    end;
+    end Register_Song_Pos;
     
     procedure Register_Song_Selection(Obj : in out Recv_Context; Callback : Song_Selection_Proc) is
     begin
         Obj.Song_Selection := Callback;
-    end;
+    end Register_Song_Selection;
     
     procedure Register_Tune_Request(Obj : in out Recv_Context; Callback : Tune_Request_Proc) is
     begin
         Obj.Tune_Request := Callback;
-    end;
+    end Register_Tune_Request;
     
     procedure Register_Realtime(Obj : in out Recv_Context; Callback : Realtime_Proc) is
     begin
         Obj.Realtime := Callback;
-    end;
+    end Register_Realtime;
 
     ------------------------------------------------------------------
     -- Register the Idle Procedure
@@ -523,7 +523,7 @@ package body MIDI.Receiver is
     procedure Register_Idle(Obj : in out Recv_Context; Callback : Idle_Proc) is
     begin
         Obj.Idle := Callback;
-    end;
+    end Register_Idle;
     
 ----------------------------------------------------------------------
 -- Notes From http://www.harmony-central.com/MIDI/Doc/primer.txt
