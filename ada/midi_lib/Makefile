@@ -1,6 +1,5 @@
-# MCU := atmega8
-# MCU := atmega169
-MCU := atmega328p
+BURNMCU=m168
+MCU := atmega168
 
 AR	= avr-ar
 ADA	= avr-gnatmake
@@ -13,7 +12,7 @@ OCP	= avr-objcopy
 
 OPT = s
 
-MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -C -gnaty0 -gnaty-rb
+MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -gnaty0 -gnaty-rb
 
 all:	lib obj libmidi.a
 
@@ -41,6 +40,8 @@ clobber: clean
 	rm -f *.map lib/libmidi.a lib/*.ali lib/*.o
 
 burn:	midi_test.hex
-	$(AVRDUDE) -c arduino -p atmega328p -P $(PORT) -b 115200 -U flash:w:midi_test.hex
+	avrdude $(PGMPARMS) -p $(BURNMCU) -U flash:w:midi_test.hex
+
+include ../avrdude.mk
 
 # End
