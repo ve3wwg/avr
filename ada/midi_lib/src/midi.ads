@@ -10,17 +10,20 @@
 -- This module implements Top Level for MIDI I/O
 ----------------------------------------------------------------------
 
+with Interfaces;
+use  Interfaces;
+
 package MIDI is
     pragma Pure;
 
-    type Unsigned_8  is mod 2 **  8;
-    for Unsigned_8'Size use  8;
-
-    type Unsigned_16 is mod 2 ** 16;
-    for Unsigned_16'Size use 16;
-
-    type Unsigned_32 is mod 2 ** 32;
-    for Unsigned_32'Size use 32;
+--    type Unsigned_8  is mod 2 **  8;
+--    for Unsigned_8'Size use  8;
+--
+--    type Unsigned_16 is mod 2 ** 16;
+--    for Unsigned_16'Size use 16;
+--
+--    type Unsigned_32 is mod 2 ** 32;
+--    for Unsigned_32'Size use 32;
 
     ------------------------------------------------------------------
     -- MIDI Data Types

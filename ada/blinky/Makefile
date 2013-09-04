@@ -1,5 +1,6 @@
 #MCU=avr5
-MCU=atmega328p
+# RTS=rts/avr51
+MCU=atmega168
 
 OPTZ	= -Os
 

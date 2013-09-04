@@ -1,0 +1,21 @@
+project Synth extends "avr_app" is
+
+    for Exec_Dir use ".";     
+    for Source_Dirs use ( 
+        ".",
+        "/opt/avrada-1.2.2/avr/lib/gnat/mcp4922",
+	"../midi_lib/src"
+    );
+
+    for Main use ("main.adb");
+
+    package Compiler is
+        for Default_Switches ("Ada") use ( 
+		"-gnaty0", 
+		"-gnaty-rb",
+		"-M",
+		"-L../midi_lib/lib"
+	);
+    end Compiler;
+
+end Synth;
