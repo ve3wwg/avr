@@ -1,0 +1,8 @@
+project PCD8544 extends "avr_app" is
+	for Library_Dir use "lib";
+	for Object_Dir use "obj";
+	for Library_Name use "pcd8544";
+	for Library_Kind use "static";
+	for Source_Dirs use ( "src" );
+end PCD8544;
+
