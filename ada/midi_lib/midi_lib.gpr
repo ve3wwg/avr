@@ -1,4 +1,4 @@
-project Midi_Lib extends "avr_app" is
+library project Midi_Lib extends "avr_app" is
 	for Library_Dir use "lib";
 	for Object_Dir use "obj";
 	for Library_Name use "midi";
