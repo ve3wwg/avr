@@ -3,10 +3,12 @@
 -- (C) Warren W. Gay VE3WWG  ve3wwg@gmail.com
 --
 -- Protected under the GNU GENERAL PUBLIC LICENSE v2, June 1991
+--
+-- The PCD8544 LCD Controller is used by the Popular Nokia-5110 LCD
 
 with Ada.Characters.Latin_1;
 
-package body pcd8544 is
+package body PCD8544 is
 
     ------------------------------------------------------------------
     -- Text Font
@@ -182,6 +184,9 @@ package body pcd8544 is
         Context.Contrast    := Contrast;
         Context.Temp_Coef   := Temp_Coef;
         Context.Bias        := Bias;
+        Context.Power_On    := True;
+
+        Context.IO_Proc(Configure,True); -- Tell user callback to configure I/O pins
 
         -- Establish all pin signals high
         -- This makes /RESET and /CE inactive
@@ -218,6 +223,113 @@ package body pcd8544 is
         Context.Buffer      := ( ( ' ', others => ' ' ), others => ( ' ', others => ' ' ) );
 
     end Initialize;
+
+    ------------------------------------------------------------------
+    -- Adjust Vop Parameter (without reset)
+    ------------------------------------------------------------------
+
+    procedure Set_Vop(Context : in out IO_Context; Contrast : Vop_Type) is
+    begin
+
+        Context.Contrast := Contrast;
+
+        declare
+            Set_Vop : Unsigned_8 := Unsigned_8(Context.Contrast) or 16#80#;
+        begin
+            Set_Mode(Context,Command_Mode);
+            Write(Context,16#21#);      -- Enable extended instruction set
+            Write(Context,Set_Vop);     -- Set contrast
+            Write(Context,16#20#);      -- Disable extended instruction set
+            Set_Mode(Context,Unselect);
+        end;
+
+    end Set_Vop;
+
+    ------------------------------------------------------------------
+    -- Adjust Temperature Coefficient without Reset
+    ------------------------------------------------------------------
+    procedure Set_TC(Context : in out IO_Context; Temp_Coef : TC_Type) is
+    begin
+
+        Context.Temp_Coef := Temp_Coef;
+
+        declare
+            Set_TC :    Unsigned_8 := Unsigned_8(Context.Temp_Coef) or 16#04#;
+        begin
+            Set_Mode(Context,Command_Mode);
+            Write(Context,16#21#);      -- Enable extended instruction set
+            Write(Context,Set_TC);      -- Set temperature coefficient
+            Write(Context,16#20#);      -- Disable extended instruction set
+            Set_Mode(Context,Unselect);
+        end;
+
+    end Set_TC;
+
+    ------------------------------------------------------------------
+    -- Adjust Bias without Reset
+    ------------------------------------------------------------------
+    procedure Set_Bias(Context : in out IO_Context; Bias : Bias_Type) is
+    begin
+
+        Context.Bias := Bias;
+
+        declare
+            Set_Bias :  Unsigned_8 := Unsigned_8(Context.Bias) or 16#10#;
+        begin
+            Set_Mode(Context,Command_Mode);
+            Write(Context,16#21#);      -- Enable extended instruction set
+            Write(Context,Set_Bias);    -- Set controller bias
+            Write(Context,16#20#);      -- Disable extended instruction set
+            Set_Mode(Context,Unselect);
+        end;
+
+    end Set_Bias;
+
+    ------------------------------------------------------------------
+    -- Change mode of the display
+    ------------------------------------------------------------------
+    procedure Set_Mode(Context : in out IO_Context; Mode : Display_Mode) is
+    begin
+
+        Set_Mode(Context,Command_Mode);
+        case Mode is
+            when Blank =>
+                Write(Context,16#08#);
+            when Normal =>
+                Write(Context,16#0C#);
+            when AllPixelsOn =>
+                Write(Context,16#09#);
+            when Inverse =>
+                Write(Context,16#0D#);
+        end case;
+        
+        Set_Mode(Context,Unselect);
+
+    end Set_Mode;
+
+    ------------------------------------------------------------------
+    -- Power Down/Up the LCD Device
+    ------------------------------------------------------------------
+    procedure Power(Context : in out IO_Context; Down : Boolean) is
+    begin
+
+        if Down /= Context.Power_On then
+            return;     -- No state change needed
+        end if;
+
+        if Down then
+            -- Power down
+            Set_Mode(Context,Normal);       -- Switch to normal mode
+            Clear(Context);                 -- Then, clear for LCD safety during power down
+            Set_Mode(Context,Command_Mode);
+            Write(Context,16#24#);          -- Set PD bit
+            Set_Mode(Context,Unselect);
+            Context.Power_On := False;      -- Note that we are off now
+        else
+            Initialize(Context,Context.IO_Proc,Context.Contrast,Context.Temp_Coef,Context.Bias);
+        end if;
+
+    end Power;
 
     ------------------------------------------------------------------
     -- Home Cursor
@@ -449,4 +561,22 @@ package body pcd8544 is
 
     end Put;
 
-end pcd8544;
+    ------------------------------------------------------------------
+    -- Put String to LCD with terminating LF
+    ------------------------------------------------------------------
+    procedure Put_Line(Context : in out IO_Context; Text : String) is
+    begin
+        Put(Context,Text);
+        Put_Line(Context);
+    end Put_Line;
+    
+    ------------------------------------------------------------------
+    -- Put LF to LCD to start new line
+    ------------------------------------------------------------------
+    procedure Put_Line(Context : in out IO_Context) is
+        use Ada.Characters.Latin_1;
+    begin
+        Put(Context,LF);
+    end Put_line;
+
+end PCD8544;
