@@ -14,12 +14,13 @@ OPT = s
 
 MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -gnaty0 -gnaty-rb
 
-all:	lib obj libpcd8544.a
+all:	lib obj lib/libpcd8544.a
 
-libpcd8544.a: lib obj
+lib/libpcd8544.a: lib obj
 	$(ADA) $(MFLAGS) -Ppcd8544.gpr
+	@echo "Do 'make test' to build test program"
 
-test:	testmain.gpr testmain.adb
+test:	lib/libpcd8544.a testmain.gpr testmain.adb test_io.ads test_io.adb
 	$(ADA) $(MFLAGS) -aI./src -aL./lib -Ptestmain.gpr -largs -M -largs -L./lib -lpcd8544
 	$(OCP) -O ihex -R .eeprom testmain.elf testmain.hex
 	@rm -f testmain.elf testmain.map testmain.ali b~* testmain.o
