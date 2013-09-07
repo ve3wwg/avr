@@ -12,5 +12,7 @@ package Test_IO is
 
     procedure Pin_IO(Pin : PCD8544.IO_Pin; State : Boolean);
 
+    procedure Blinky;
+
 end Test_IO;
 
