@@ -28,8 +28,9 @@ begin
     Put(Context,"PCD8544");
     Move(Context,4,2);
     Put(Context,"Library!!");
-
     Move(Context,5,0);
-    Put(Context,"0123456789ABCDEF");
+    Put(Context,"0123456789ABCD");
+
+    Test_IO.Blinky;
 
 end TestMain;
