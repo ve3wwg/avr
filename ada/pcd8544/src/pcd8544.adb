@@ -174,7 +174,7 @@ package body PCD8544 is
     procedure Initialize(
         Context :       in out  IO_Context;
         IO_Proc :       in      Set_IO_Proc;
-        Contrast :      in      Vop_Type  := 16#5F#;
+        Contrast :      in      Vop_Type  := 16#3F#;
         Temp_Coef :     in      TC_Type   := 0;
         Bias :          in      Bias_Type := 4
     ) is
@@ -221,6 +221,8 @@ package body PCD8544 is
         Context.Y           := 0;
         
         Context.Buffer      := ( ( ' ', others => ' ' ), others => ( ' ', others => ' ' ) );
+
+        Clear(Context);
 
     end Initialize;
 
@@ -368,7 +370,7 @@ package body PCD8544 is
     ------------------------------------------------------------------
     procedure Move(Context : in out IO_Context; Y : Y_Coord; X : X_Coord) is
         Set_Y_Cmd : Unsigned_8 := Unsigned_8(Y) or 16#40#;
-        Set_X_Cmd : Unsigned_8 := Unsigned_8(X) or 16#80#;
+        Set_X_Cmd : Unsigned_8 := (Unsigned_8(X)*6) or 16#80#;
     begin
         Set_Mode(Context,Command_Mode);
         Write(Context,Set_Y_Cmd);
@@ -520,7 +522,7 @@ package body PCD8544 is
         end if;
 
         if Ch = LF then
-            if Context.Y >= Y_Coord'Last then
+            if Context.Y > Y_Coord'Last then
                 Scroll(Context);
                 Move(Context,Y_Coord'Last,X_Coord'First);
             else
@@ -529,7 +531,7 @@ package body PCD8544 is
             return;
         end if;
 
-        if Context.X >= X_Coord'Last then
+        if Context.X > X_Coord'Last then
             if Context.Y >= Y_Coord'Last then
                 Scroll(Context);
                 Move(Context,Y_Coord'Last,X_Coord'First);

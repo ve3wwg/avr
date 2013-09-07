@@ -74,7 +74,7 @@ package PCD8544 is
     procedure Initialize(
         Context :       in out  IO_Context;
         IO_Proc :       in      Set_IO_Proc;
-        Contrast :      in      Vop_Type  := 16#5F#;
+        Contrast :      in      Vop_Type  := 16#3F#;
         Temp_Coef :     in      TC_Type   := 0;
         Bias :          in      Bias_Type := 4
     );
