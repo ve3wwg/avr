@@ -15,12 +15,23 @@ package TWI is
     type TWI_Addr is new Unsigned_8 range 0..16#7F#;
     type TWI_Context is private;
 
-    procedure Initialize(Context : in out TWI_Context; Addr : TWI_Addr);
+    type TWI_Msg is
+        record
+            Addr :          TWI_Addr;
+            Buffer :        System.Address;
+            Length :        Natural;
+            Write :         Boolean;
+            Transferred :   Natural;
+        end record;
+
+    type TWI_Msg_Array is array (Unsigned_8 range <>) of TWI_Msg;
+
+    procedure Initialize(Context : in out TWI_Context; Addr, Mask : TWI_Addr);
 
     procedure Send(
         Context :       in out  TWI_Context;
-        Slave :         in      TWI_Addr;
-        Data :          in      Data_Array
+        Messages :      in out  TWI_Msg_Array;
+        Failed :        out     Boolean
     );
 
 private
@@ -30,9 +41,7 @@ private
     type TWI_Context is
         record
             Addr :      TWI_Addr;           -- Our own address
-            Peer :      TWI_Addr;           -- Peer's address
             Busy :      Boolean;            -- True when I2C is active
-            Buf_Addr :  System.Address;     -- Allocated buffer
         end record;
 
 end TWI;

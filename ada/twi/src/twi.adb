@@ -27,18 +27,18 @@ package body TWI is
     BV_TWEA :       Boolean renames AVR.MCU.TWCR_Bits(AVR.MCU.TWEA_Bit);
     BV_TWINT :      Boolean renames AVR.MCU.TWCR_Bits(AVR.MCU.TWINT_Bit);
 
-    -- Allocate Array_Data
-    procedure Alloc_Data(Size : System.Memory.size_t; Buf_Addr : out System.Address) is
-    begin
-        Buf_Addr := System.Memory.Alloc(Size);
-    end Alloc_Data;
-
-    -- Free Allocated Buffer
-    procedure Free_Data(Buf_Addr : in out System.Address) is
-    begin
-        System.Memory.Free(Buf_Addr);
-        Buf_Addr := System.Null_Address;
-    end Free_Data;
+--    -- Allocate Array_Data
+--    procedure Alloc_Data(Size : System.Memory.size_t; Buf_Addr : out System.Address) is
+--    begin
+--        Buf_Addr := System.Memory.Alloc(Size);
+--    end Alloc_Data;
+--
+--    -- Free Allocated Buffer
+--    procedure Free_Data(Buf_Addr : in out System.Address) is
+--    begin
+--        System.Memory.Free(Buf_Addr);
+--        Buf_Addr := System.Null_Address;
+--    end Free_Data;
 
     -- Return the Relevant TWSR bits
     function Status return Unsigned_8 is
@@ -48,30 +48,48 @@ package body TWI is
     end Status;
 
     -- Initialize the Context
-    procedure Initialize(Context : in out TWI_Context; Addr : TWI_Addr) is
+    procedure Initialize(Context : in out TWI_Context; Addr, Mask : TWI_Addr) is
     begin
+
+        TWAR  := Unsigned_8(Addr);
+        TWAMR := Unsigned_8(Mask);
 
         Context.Addr := Addr;
         Context.Busy := False;
+
+        
 
     end Initialize;
 
     -- Master Send Request
     procedure Send(
         Context :       in out  TWI_Context;
-        Slave :         in      TWI_Addr;
-        Data :          in      Data_Array
+        Messages :      in out  TWI_Msg_Array;
+        Failed :           out  Boolean
     ) is
-        use System;
     begin
         
-        pragma Assert(Context.Busy = False);
-        pragma Assert(Context.Buf_Addr = System.Null_Address);
+        if Context.Busy then
+            Failed := True;
+            return;
+        end if;
 
-        Alloc_Data(Data'Length,Context.Buf_Addr);
+        case Status is
+        when 16#F8# =>      -- No state info (or between states)
+            null;
+        when 16#00# =>      -- Bus error
+            null;
+        when others =>
+            null;
+        end case;
 
-        Context.Peer := Slave;
+
+        Failed       := False;
         Context.Busy := True;
+
+        for X in Messages'Range loop
+            Messages(X).Transferred := 0;
+        end loop;
 
     end Send;
 
