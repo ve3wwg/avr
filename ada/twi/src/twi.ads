@@ -6,42 +6,29 @@
 --
 -- Protected under the GNU GENERAL PUBLIC LICENSE v2, June 1991
 
-with Interfaces, System;
+with Interfaces;
 use Interfaces;
 
 package TWI is
 
-    type Data_Array is array(Unsigned_16 range <>) of Unsigned_8;
-    type TWI_Addr is new Unsigned_8 range 0..16#7F#;
-    type TWI_Context is private;
-
-    type TWI_Msg is
-        record
-            Addr :          TWI_Addr;
-            Buffer :        System.Address;
-            Length :        Natural;
-            Write :         Boolean;
-            Transferred :   Natural;
-        end record;
-
-    type TWI_Msg_Array is array (Unsigned_8 range <>) of TWI_Msg;
-
-    procedure Initialize(Context : in out TWI_Context; Addr, Mask : TWI_Addr);
-
-    procedure Send(
-        Context :       in out  TWI_Context;
-        Messages :      in out  TWI_Msg_Array;
-        Failed :        out     Boolean
+    type Error_Code is (
+        No_Error,           -- No error (Success)
+        Buffer,             -- Invalid or null buffer pointer
+        Busy,               -- TWI is busy with a current request
+        Capacity,           -- Too many Requests/Bytes
+        Invalid,            -- Invalid request
+        Bad_State           -- Unable to ready the TWI controller
     );
 
-private
+    type TWI_Addr is new Unsigned_8 range 0..16#7F#;
 
-    type Data_Ptr is access all Data_Array;
+    type Data_Array is array(Unsigned_16 range <>) of Unsigned_8;
+    type Data_Array_Ptr is access all Data_Array;
 
-    type TWI_Context is
-        record
-            Addr :      TWI_Addr;           -- Our own address
-            Busy :      Boolean;            -- True when I2C is active
-        end record;
+    procedure Initialize(Addr, Mask : TWI_Addr);
+
+    procedure Clear(Error : out Error_Code);
+    procedure Request(Addr : TWI_Addr; Bytes : Unsigned_16; Write : Boolean; Error : out Error_Code);
+    procedure Transfer(Buffer : in out Data_Array; Error : out Error_Code);
 
 end TWI;
