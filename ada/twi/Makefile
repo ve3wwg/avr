@@ -12,18 +12,20 @@ OCP	= avr-objcopy
 
 OPT = s
 
-MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -gnaty0 -gnaty-rb
+MFLAGS = -O$(OPT) -p -XMCU=$(MCU)
 
 all:	lib obj lib/libtwi.a
 
-lib/libtwi.a: lib obj
-	$(ADA) $(MFLAGS) -Ptwi.gpr
+lib/libtwi.a: lib obj build.gpr
+	$(ADA) $(MFLAGS) -Pbuild.gpr 
 	@echo "Do 'make test' to build test program"
 
-test:	lib/libtwi.a testmain.gpr testmain.adb test_io.ads test_io.adb
-	$(ADA) $(MFLAGS) -aI./src -aL./lib -Ptestmain.gpr -largs -M -largs -L./lib -ltwi
+dump:
+	avr-objdump -mavr:5 -d testmain.elf
+
+test:	lib/libtwi.a test.gpr testmain.adb test_io.ads test_io.adb
+	$(ADA) $(MFLAGS) -Ptest.gpr
 	$(OCP) -O ihex -R .eeprom testmain.elf testmain.hex
-	@rm -f testmain.elf testmain.map testmain.ali b~* testmain.o
 
 lib:	
 	mkdir ./lib
@@ -34,6 +36,10 @@ obj:
 clean:
 	rm -f *.hex *.eep *.elf *.map *.sym *.lss *.ali b~*.ad? *.o
 	rm -f errs.t src/errs.t
+
+libclean:
+	rm -f *.elf *.map test_main.ali *.o *.ali
+	rm -fr ./obj *.hex b~*
 
 clobber: clean
 	rm -fr ./obj ./lib
