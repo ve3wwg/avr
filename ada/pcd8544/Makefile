@@ -17,11 +17,11 @@ MFLAGS = -O$(OPT) -p -XMCU=$(MCU) -gnaty0 -gnaty-rb
 all:	lib obj lib/libpcd8544.a
 
 lib/libpcd8544.a: lib obj
-	$(ADA) $(MFLAGS) -Ppcd8544.gpr
+	$(ADA) $(MFLAGS) -Pbuild.gpr
 	@echo "Do 'make test' to build test program"
 
-test:	lib/libpcd8544.a testmain.gpr testmain.adb test_io.ads test_io.adb
-	$(ADA) $(MFLAGS) -aI./src -aL./lib -Ptestmain.gpr -largs -M -largs -L./lib -lpcd8544
+test:	lib/libpcd8544.a test.gpr testmain.adb test_io.ads test_io.adb
+	$(ADA) $(MFLAGS) -aI./src -aL./lib -Ptest.gpr
 	$(OCP) -O ihex -R .eeprom testmain.elf testmain.hex
 	@rm -f testmain.elf testmain.map testmain.ali b~* testmain.o
 
@@ -34,6 +34,10 @@ obj:
 clean:
 	rm -f *.hex *.eep *.elf *.map *.sym *.lss *.ali b~*.ad? *.o
 	rm -f errs.t 
+
+libclean:
+	rm -f *.elf *.map test_main.ali *.o *.ali
+	rm -fr ./obj *.hex
 
 clobber: clean
 	rm -fr ./obj ./lib
