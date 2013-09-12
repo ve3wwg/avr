@@ -13,11 +13,13 @@ package TWI is
 
     type Error_Code is (
         No_Error,           -- No error (Success)
-        Buffer,             -- Invalid or null buffer pointer
+        Invalid_Buffer,     -- Invalid or null buffer pointer
         Busy,               -- TWI is busy with a current request
         Capacity,           -- Too many Requests/Bytes
         Invalid,            -- Invalid request
-        Bad_State           -- Unable to ready the TWI controller
+        Bad_State,          -- Unable to ready the TWI controller
+        SLA_NAK,            -- SLA+W received a NAK
+        Failed              -- Failed for an unknown reason
     );
 
     type TWI_Addr is new Unsigned_8 range 0..16#7F#;
@@ -29,6 +31,8 @@ package TWI is
 
     procedure Clear(Error : out Error_Code);
     procedure Request(Addr : TWI_Addr; Bytes : Unsigned_16; Write : Boolean; Error : out Error_Code);
-    procedure Transfer(Buffer : in out Data_Array; Error : out Error_Code);
+    procedure Indexes(First, Last : out Unsigned_16);
+    procedure Indexes(X : Unsigned_8; First, Last : out Unsigned_16);
+    procedure Master(Buffer : in out Data_Array; Error : out Error_Code);
 
 end TWI;
