@@ -1,0 +1,10 @@
+This project is a simple debugging framework for debugging on
+the USB Boarduino.
+
+Having a USB serial link to your AVR makes debugging so much
+easier. You can format and display status updates as
+required.
+
+With command input, you can also initiate or simulate
+multiple test scenarios.
+

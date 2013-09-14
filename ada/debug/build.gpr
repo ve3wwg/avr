@@ -1,0 +1,14 @@
+project Build extends "avr_app" is
+    for Main use ("main.adb");
+    for Object_Dir use ".";
+    for Exec_Dir use ".";
+    for Source_Files use ( "main.adb", "ttydbg.ads", "ttydbg.adb" );
+    package Compiler is
+       for Switches ("Ada") use (
+           "-gnaty0", 
+           "-gnaty-rb"
+       );
+    end Compiler;
+
+end Build;
+
