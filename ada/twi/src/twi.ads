@@ -6,6 +6,7 @@
 --
 -- Protected under the GNU GENERAL PUBLIC LICENSE v2, June 1991
 
+with AVR.Strings;
 with Interfaces;
 use Interfaces;
 
@@ -22,17 +23,22 @@ package TWI is
         Failed              -- Failed for an unknown reason
     );
 
-    type TWI_Addr is new Unsigned_8 range 0..16#7F#;
+    type Slave_Addr is new Unsigned_8 range 0..16#7F#;
 
     type Data_Array is array(Unsigned_16 range <>) of Unsigned_8;
     type Data_Array_Ptr is access all Data_Array;
 
-    procedure Initialize(Addr, Mask : TWI_Addr);
+    procedure Initialize(Addr, Mask : Slave_Addr; Buffer : Data_Array_Ptr);
 
     procedure Clear(Error : out Error_Code);
-    procedure Request(Addr : TWI_Addr; Bytes : Unsigned_16; Write : Boolean; Error : out Error_Code);
+
+    procedure Write(Addr : Slave_Addr; Data : Data_Array; Error : out Error_Code);
     procedure Indexes(First, Last : out Unsigned_16);
     procedure Indexes(X : Unsigned_8; First, Last : out Unsigned_16);
-    procedure Master(Buffer : in out Data_Array; Error : out Error_Code);
+    procedure Master(Error : out Error_Code);
+
+    procedure Report(S : out AVR.Strings.AVR_String);
+    procedure R_Status(S : out AVR.Strings.AVR_String);
+    function Get_Error return Error_Code;
 
 end TWI;

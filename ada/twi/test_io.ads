@@ -6,8 +6,6 @@
 --
 -- Protected under the GNU GENERAL PUBLIC LICENSE v2, June 1991
 
-with PCD8544;
-
 package Test_IO is
 
     procedure Test;

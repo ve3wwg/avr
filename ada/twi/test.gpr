@@ -1,4 +1,3 @@
-with "../pcd8544/libpcd8544.gpr";
 with "libtwi.gpr";
 
 project Test extends "avr_app" is

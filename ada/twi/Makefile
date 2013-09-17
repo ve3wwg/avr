@@ -14,7 +14,7 @@ OPT = s
 
 MFLAGS = -O$(OPT) -p -XMCU=$(MCU)
 
-all:	lib obj lib/libtwi.a
+all:	lib obj lib/libtwi.a test
 
 lib/libtwi.a: lib obj build.gpr
 	$(ADA) $(MFLAGS) -Pbuild.gpr 
@@ -47,6 +47,9 @@ clobber: clean
 
 burn:	testmain.hex
 	avrdude $(PGMPARMS) -p $(BURNMCU) -U flash:w:testmain.hex
+
+cu:	
+	putty -load boarduino
 
 lib/libtwi.a: ./src/twi.ads ./src/twi.adb Makefile
 
