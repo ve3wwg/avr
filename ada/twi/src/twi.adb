@@ -18,6 +18,13 @@ package body TWI is
 
     pragma Linker_Options("-lavrada");
 
+
+
+    Statuses : Data_Array := ( 0..16 => 0 );
+    SX : Unsigned_16 := Statuses'First;
+
+
+
     procedure To_Hex(U : Unsigned_8; S : out AVR_String) is
     begin
         AVR.Int_Img.U8_Hex_Img(U,S);
@@ -71,8 +78,22 @@ package body TWI is
     Local_Addr :    Slave_Addr := 0;
     Addr_Mask :     Slave_Addr := 0;
     Mode :          Operation_Mode := Idle;
+    Prev_Status :   Unsigned_8 := 0;
+    Last_Status :   Unsigned_8 := 0;
 
     pragma Volatile(Mode);
+
+    function Get_Mode return Character is
+    begin
+        case Mode is
+        when Idle =>
+            return 'I';
+        when Master =>
+            return 'M';
+        when Slave =>
+            return 'S';
+        end case;
+    end Get_Mode;
 
     ------------------------------------------------------------------
     -- I2C Messages
@@ -100,35 +121,32 @@ package body TWI is
     Requests :      Msg_Array(0..N_Requests-1); -- List of requests
     Xfer_Error :    Error_Code := No_Error;     -- Transfer status
 
+
     ------------------------------------------------------------------
     -- Return the Relevant TWSR bits
     ------------------------------------------------------------------
     function Status return Unsigned_8 is
-        S : Unsigned_8 := TWSR and 16#FC#;  -- Exclude the prescaler bits 1..0
     begin
-        return S;
+        return TWSR and 16#FC#;                 -- Exclude the prescaler bits 1..0
     end Status;
 
     ------------------------------------------------------------------
     -- Start a I2C Transmission
     ------------------------------------------------------------------
     procedure TWI_Start is
+        Start : constant Unsigned_8 := 2#1110_0101#;
     begin
-        BV_TWIE  := True;
-        BV_TWEA  := True;
-        BV_TWEN  := True;
-        BV_TWSTA := True;
-        BV_TWINT := True;
+        TWCR := Start;
     end TWI_Start;
 
     ------------------------------------------------------------------
     -- Stop an I2C Transmission
     ------------------------------------------------------------------
     procedure TWI_Stop is
+        Stop : constant Unsigned_8 := 2#1101_0101#;
     begin
-        BV_TWEA  := True;
-        BV_TWSTO := True;
-        BV_TWINT := True;
+        Mode := Idle;
+        TWCR := Stop;
     end TWI_Stop;
 
     ------------------------------------------------------------------
@@ -137,6 +155,7 @@ package body TWI is
     procedure TWI_Clear_Bus_Error is
     begin
         loop
+            BV_TWSTA := False;
             BV_TWSTO := True;
             BV_TWINT := True;
             exit when Status = 16#F8#;
@@ -153,13 +172,14 @@ package body TWI is
     -- Transmit the SLA+W
     ------------------------------------------------------------------
     procedure TWI_Send_SLA(Addr : Slave_Addr; Write : Boolean) is
-        SLA_W : Unsigned_8 := Shift_Left(Unsigned_8(Addr),1);
+        SLA_R : Unsigned_8 := Shift_Left(Unsigned_8(Addr),1);
+        Cmd   : Unsigned_8 := 2#1100_0101#;
     begin
-        if Write then
-            SLA_W := SLA_W or 1;
+        if not Write then
+            SLA_R := SLA_R or 1;
         end if;
-        TWDR := SLA_W;
-        BV_TWINT := True;
+        TWDR := SLA_R;
+        TWCR := Cmd;
     end TWI_Send_SLA;
 
     ------------------------------------------------------------------
@@ -175,9 +195,9 @@ package body TWI is
         BV_C5 := True;          -- Enable pullup
 
         DD_C4 := DD_Input;
-        BV_C4 := True;
+        BV_C4 := True;          -- Enable pullup
 
-        TWSR  := 0;     -- Prescale = x 1
+        TWSR  := 0;             -- Prescale = x 1
         TWBR  := 8;
         TWAR  := Unsigned_8(Addr);
         TWAMR := Unsigned_8(Mask);
@@ -190,6 +210,10 @@ package body TWI is
         Addr_Mask := Mask;
         Mode := Idle;
         Buf := Buffer;
+
+        Request_X := 0;
+        Req_Buf_X := 0;
+        Mode      := Idle;
 
     end Initialize;
 
@@ -293,14 +317,9 @@ package body TWI is
             TWI_Clear_Bus_Error;
             TWI_Start;
         when others =>
-            Mode := Idle;
             Error := Failed;            
             return;
         end case;
-
---        loop
---            exit when Mode = Idle;
---        end loop;
 
     end Master;
 
@@ -308,22 +327,21 @@ package body TWI is
     -- Transmit a Master Mode Byte
     ------------------------------------------------------------------
     procedure Xmit_Byte is
+        Cmd : Unsigned_8 := 2#1100_0101#;
     begin
 
         if Xfer_Buf_X <= Requests(Xfer_X).Last then
             -- Continue current data transmission
             TWDR := Buf(Xfer_Buf_X);
             Xfer_Buf_X := Xfer_Buf_X + 1;
-            BV_TWINT := True;
+            TWCR := Cmd;
         else
             -- End current transmission
             Requests(Xfer_X).Failed := False;
             Xfer_X := Xfer_X + 1;
             if Xfer_X < Request_X then
-                -- Start next transmission/reception
                 TWI_Start;  -- Repeated start
             else
-                -- We're all done now
                 TWI_Stop;   -- End of transmission
             end if;
         end if;
@@ -334,21 +352,21 @@ package body TWI is
     -- Receive a Master Mode Byte
     ------------------------------------------------------------------
     procedure Recv_Byte is
+        Cmd : Unsigned_8          := 2#1000_0101#;
+        EA :  constant Unsigned_8 := 2#0100_0000#;
     begin
 
         if Xfer_Buf_X <= Requests(Xfer_X).Last then
-            -- Continue to receive data
             Buf(Xfer_Buf_X) := TWDR;
             if Xfer_Buf_X >= Requests(Xfer_X).Last then
-                BV_TWEA := True;    -- This last byte will be NAKed
+                Cmd := Cmd xor EA;   -- This last byte will be NAKed
             end if;
             Xfer_Buf_X := Xfer_Buf_X + 1;
-            BV_TWINT := True;
+            TWCR := Cmd;
         else
             -- End current receive
             Xfer_X := Xfer_X + 1;
-            if Xfer_X > Request_X then
-                -- Start next transmission/reception
+            if Xfer_X < Request_X then
 	        TWI_Start;
             else
                 TWI_Stop;
@@ -373,28 +391,26 @@ package body TWI is
     ------------------------------------------------------------------
 
     procedure ISR is
+        S : Unsigned_8 := Status;
     begin
 
         Count := Count + 1;
 
-        if Request_X <= Requests'First then
-            BV_TWINT := True;   -- Clear interrupt
-            TWI_Clear_Bus_Error;
-            return;             -- Spurious
-        elsif Mode = Idle then
-            BV_TWINT := True;   -- Clear interrupt
-            TWI_Clear_Bus_Error;
-            return;             -- Spurious
+        if SX <= Statuses'Last then
+            Statuses(SX) := S;
+            SX := SX + 1;
         end if;
 
-        case Status is
+        Prev_Status := Last_Status;
+        Last_Status := S;
+
+        case S is
         when 16#00# =>  -- Bus error
             TWI_Clear_Bus_Error;
             TWI_Start;
         when 16#38# =>  -- Arbitration lost in SLA+W transmission
             TWI_Start;  -- Try again
         when 16#08# | 16#10# =>  -- Start/Repeated-start has been transmitted
-            Requests(Xfer_X).Failed := False;
             Xfer_Buf_X := Requests(Xfer_X).First;
             TWI_Send_SLA(Requests(Xfer_X).Addr,Requests(Xfer_X).Write);
         when 16#20# =>  -- SLA+W transmitted but NAKed
@@ -423,9 +439,8 @@ package body TWI is
             Recv_Byte;
         when 16#F8# =>
             Mode := Idle;
-            BV_TWINT := True;   -- Clear interrupt
         when others =>
-            BV_TWINT := True;   -- Clear interrupt
+            Mode := Idle;
         end case;
 
     end ISR;
@@ -440,5 +455,35 @@ package body TWI is
     begin
         return Xfer_Error;
     end Get_Error;
+
+    procedure PStatus(S : out AVR_String) is
+    begin
+        To_Hex(Prev_Status,S);
+    end PStatus;
+
+    procedure LStatus(S : out AVR_String) is
+    begin
+        To_Hex(Last_Status,S);
+    end LStatus;
+
+    procedure XStatus(Str : out AVR_String) is
+        U : Unsigned_8;
+        S : AVR_String(1..2);
+        Y : Unsigned_8 := Str'First;
+    begin
+        Str := ( ' ', others => ' ' );
+        for X in Statuses'Range loop
+            if X >= SX then
+                Str(Y) := '.';
+                return;
+            end if;
+            U := Statuses(X);
+            To_Hex(U,S);
+            Str(Y) := S(S'First);
+            Str(Y+1) := S(S'Last);
+            Str(Y+2) := ',';
+            Y := Y + 3;
+        end loop;
+    end XStatus;
 
 end TWI;

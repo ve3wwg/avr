@@ -49,7 +49,7 @@ burn:	testmain.hex
 	avrdude $(PGMPARMS) -p $(BURNMCU) -U flash:w:testmain.hex
 
 cu:	
-	putty -load boarduino
+	putty -load boarduino &
 
 lib/libtwi.a: ./src/twi.ads ./src/twi.adb Makefile
 

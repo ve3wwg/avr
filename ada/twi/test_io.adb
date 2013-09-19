@@ -66,6 +66,13 @@ package body Test_IO is
         Put_Line(S);
     end Put_Status;
 
+    procedure X_Status is
+        Buf : AVR_String(1..60);
+    begin
+        TWI.XStatus(Buf);
+        Put_Line(Buf);
+    end X_Status;
+
     procedure Put_Count is
         S : AVR_String(1..2);
     begin
@@ -73,6 +80,17 @@ package body Test_IO is
         TWI.Report(S);
         Put_Line(S);
     end Put_Count;
+
+    procedure Last_Status is
+        S : AVR_String(1..2);
+    begin
+        Put("Last_Status: ");
+        TWI.PStatus(S);
+        Put(S);
+        Put(" ");
+        TWI.LStatus(S);
+        Put_Line(S);
+    end Last_Status;
 
     procedure Put(Error : TWI.Error_Code) is
     begin
@@ -149,6 +167,11 @@ package body Test_IO is
                 Put_Error;
                 Put_Count;
                 Put_Status;
+                Put("Mode: ");
+                Put(TWI.Get_Mode);
+                CRLF;
+                Last_Status;
+                X_Status;
             end case;
         end loop;
 

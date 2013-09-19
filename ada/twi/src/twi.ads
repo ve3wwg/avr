@@ -41,4 +41,10 @@ package TWI is
     procedure R_Status(S : out AVR.Strings.AVR_String);
     function Get_Error return Error_Code;
 
+    function Get_Mode return Character;
+
+    procedure PStatus(S : out AVR.Strings.AVR_String);
+    procedure LStatus(S : out AVR.Strings.AVR_String);
+    procedure XStatus(Str : out AVR.Strings.AVR_String);
+
 end TWI;
