@@ -134,7 +134,7 @@ ls patches/gcc:
 
 	In 1.2.2 this shows only 4.7.2 as an option.
 
-Check  for  new subdirectories in ./patches for other requiments
+Check  for  new subdirectories in ./patches for other requirements
 in the future.
 
 
