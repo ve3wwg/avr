@@ -1,0 +1,471 @@
+                          AVR-Ada 1.2.2
+                          September 2013
+                      Warren W. Gay VE3WWG
+
+
+This document describes the steps necessary for building AVR-Ada
+on  Mac  OSX  (Lion+).  With  a  few  exceptions, this procedure
+applies also to Linux generally.
+
+This  area  of  the  repository  also  provides some patches and
+scripts  that  will  simplify  your  task.  
+
+The  *.sh files and *.myconf files will require you to edit them
+prior to use. 
+
+
+ADVICE:
+-------
+
+HAVE TIME: If you're in a hurry, then you're destined to do this
+procedure  more  than  once! Block off about two hours of steady
+time  so that you don't miss a step.  This procedure is lengthy,
+detailed and prone to error. One mistake will ruin the result.
+
+USE  ONE  SESSION:  The  environment  (PATH)  is critical to the
+success  of  this build procedure.  If you switch windows often,
+log  out  and  then  log  back  in,  leaves  you  vulnerable  to
+forgetting to restore the correct environment.
+
+WORK  FROM A CHECK LIST: You may want to print the procedure out
+so  that  you  can check off each item as it is done. It is very
+easy to miss a step, and all steps are critical to your success.
+
+
+
+THE VERY FIRST THING:
+---------------------
+
+You  need  a native Ada compiler to build an Ada compiler (cross
+or  native).  These  days it is trivial on most distributions of
+Linux. For Mac OSX users, this can be a problem.
+
+Thankfully,  there  is  a binary download available here, should
+you need it:
+
+http://dl.dropbox.com/u/34783908/Ada/gcc-4.6.0-x86_64-apple-darwin-10.tar.bz2
+
+
+
+BEFORE YOU GET STARTED:
+-----------------------
+
+Assuming  that you have a working native Ada compiler, there are
+some other prerequisites.
+
+For OSX users, it is assumed, that you have already install many
+great  GNU  tools  from the macports collection (or equivalent).
+Linux users will simply install packages as required.
+
+Packages/Tools Needed:
+
+	- awk or gawk
+	- GNU binutils
+	- gzip version 1.2.4+ or bzip2 version 1.0.2+
+	- GNU make version 3.80+ (must be GNU make)
+	- GNU tar version 1.14+
+	- Perl version 5.6.1+
+	- zip and unzip - (for libgcj, the GCJ runtime).
+	- GMP - GNU Multiple Precision Library (GMP) version 4.3.2+
+	- MPFR - MPFR Library version 2.4.2+
+
+Also make sure a reasonably current version of these are installed:
+
+	- autoconf
+	- automake
+	- bison 
+	- bzip2 
+	- coreutils 
+	- dejagnu 
+	- flex 
+	- gmake
+	- gnutls 
+	- gzip 
+	- libmpc 
+	- libtool
+	- m4 
+	- makedepend 
+	- mpc
+	- gmp (mentioned above)
+	- mpfr (mentioned above)
+	- perl5.12+
+	- zlib
+
+For   Linux  users,  make  sure  that  all  libraries  have  the
+"development"   package   installed.  The  development  packages
+include the installation of the C/C++ include files.
+
+
+DOWNLOADS:
+----------
+
+There are FOUR main packages required to build AVR-Ada:
+
+	1. Binutils
+	2. GCC
+	3. AVR-Libc
+	4. AVR-Ada
+
+The versions used in this document are:
+
+	1. binutils-2.20.1.tar.bz2
+	2. gcc-4.7.2.tar.bz2
+	3. avr-libc-1.8.0.tar.bz2
+	4. avr-ada-1.2.2.tar.bz2
+
+These will be installed in the order listed.
+
+
+NEWER THAN AVR-Ada-1.2.2?
+-------------------------
+
+The packages required are tightly coupled to the AVR-Ada project
+itself. If you are upgrading to a newer version than 1.2.2, then
+download  that  package and unpack it to determine which GCC and
+Binutils you need.
+
+tar xjvf avr-ada-9.9.9.tar.bz2
+cd ./avr-ada-9.9.9
+ls patches/binutils
+
+	In 1.2.2 this shows only 2.20.1 as an option.
+
+ls patches/gcc:
+
+	In 1.2.2 this shows only 4.7.2 as an option.
+
+Check  for  new subdirectories in ./patches for other requiments
+in the future.
+
+
+INSTALL BINUTILS
+----------------
+
+Decide on a work directory.  I used ~/work/BUILD. In there I put
+all the downloaded tar files in ./dist. 
+
+If you are repeating the build procedure, you need to re-instate
+the  libiconv*  and  libintl*  libraries  for the benefit of the
+build  tools (Mac OSX only).  If you're doing this for the first
+time, then ignore this for now.
+
+
+1.  cd ~/work/BUILD
+
+2.  edit setnative.sh
+
+    We'll use this script to set up our native search PATH:
+
+I'm using my /opt/gcc-4.7.0 Ada compiler in this build.
+
+    PATH="/opt/gcc-4.7.0/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+Modify   the  setnative.sh  shell  script  to  use  your  chosen
+compiler.  It is probably best to choose a compiler release that
+is  near  the  one  being built.  Here I am using 4.7.0 to build
+4.7.2.
+
+3.  Set your PATH
+
+    . ./setnative.sh
+
+4.  hash -r
+
+    (this clears the bash cache of known executables)
+
+5.  Check:
+
+    type gcc   (/opt/gcc-4.7.0/bin/gcc)
+    gcc --version
+
+6.  tar xjvf dist/binutils-2.20.1.tar.bz2
+
+7.  cd ./binutils-2.20.1
+
+8.  . ../binutils_patch.sh
+
+This applies the AVR-Ada patches for binutils to binutils. 
+
+9.  cd ..   (~/work/BUILD)
+    edit ../binutils.myconf
+
+    ../binutils-2.20.1/configure --target=avr --program-prefix=avr- \
+      --disable-shared --disable-nls --enable-commonbfdlib=no \
+      --disable-werror --prefix=/opt/avrada-1.2.2
+
+Change --prefix=/opt/avrada-1.2.2 if installing your toolchain
+somewhere else.
+
+10. mkdir ./binutils-obj
+    cd ./binutils-obj
+
+11. . ../binutils.myconf
+
+12. make
+
+13. sudo make install
+
+
+MAC OSX Only:
+-------------
+
+There  is  a  conflict  between  configure  scripts, the Mac OSX
+versions  and  the  macports  (GNU)  versions  of  libiconv  and
+libintl. The  only simple solution seems to be to hide them from
+the  software  from  being  installed.  They  will  be  restored
+(unhidden) at the end of this build procedure:
+
+If  for  any  reason, you need to re-run this procedure from the
+start,  be  sure  to  put these  back. They  are  needed  in the
+binutils build above.
+
+
+Header files:
+
+	1. sudo -i
+	2. cd /opt/local/include
+	3. mv iconv.h was.iconv.h
+	4. mv libintl.h was.libintl.h
+
+Library files:
+
+	5. cd /opt/local/lib
+	6. mkdir ./was
+	7. mv libiconv* libintl* ./was/.
+
+
+BUILD AVR-GCC:
+--------------
+
+1.  We will continue to use PATH set above (. ./setnative.sh).
+    If you've logged back in, then set it now:
+
+    . ./setnative.sh
+
+2.  Edit gcc.myconf
+
+    ../gcc-4.7.2/configure \
+        --prefix=/opt/avrada-1.2.2 \
+        --disable-multilib \
+        --target=avr \
+        --program-prefix=avr- \
+        --disable-shared --disable-nls --disable-libssp \
+        --with-system-zlib \
+        --disable-libada \
+        --enable-languages=ada,c,c++ --enable-cpp --with-dwarf2 \
+        --enable-version-specific-runtime-libs \
+        --with-gmp=/opt/local \
+        --with-mpfr=/opt/local \
+        --with-mpc=/opt/local
+
+Change  the  option  --prefix=/opt/avrada-1.2.2  to  match  your
+install directory prefix.
+
+3.  cd ./gcc-4.7.2
+    . ../gcc_patch.sh
+
+    for f in ../avr-ada-1.2.2/patches/gcc/4.7.2/*.patch; do 
+        patch -p0 < "$f"
+    done
+        
+This  script  applies  the  AVR-Ada  patches  to  the  gcc-4.7.2
+compiler project.
+
+4.  cd ..
+    mkdir gcc-obj
+
+5.  . ../gcc.myconf
+
+6.  make
+
+7.  sudo make install
+
+
+AVR-Libc
+--------
+
+Here we continue to use the PATH from the previous step. If
+necessary re-establish it now:
+
+    . ./setnative.sh
+
+
+1.  tar xjvf dist/avr-libc-1.8.0.tar.gz2
+
+2.  cd ./avr-libc-1.8.0
+
+3.  ./configure --host=avr --prefix=/opt/avrada-1.2.2
+
+    (change the above --prefix as required)
+
+4.  make
+
+5.  sudo make install
+
+
+AVR-Ada
+-------
+
+0.  cd ~/work/BUILD
+
+We need to change our PATH once again. Edit the script setavrada.sh:
+
+PATH="/opt/avrada-1.2.2/bin:/opt/gcc-4.7.0/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+Make  sure  your chosen avr toolchain directory is listed first.
+List your native compiler second.  We need the gprconfig command
+from the native compiler toolchain still.
+
+    - /opt/avrada-1.2.2/bin     My (being installed) AVR tools dir
+    - /opt/gcc-4.7.0/bin        My chosen native compiler tools dir
+                                where gprconfig lives.
+
+1.  Edit setavrada.sh
+
+2.  . ./setavrada.sh            # Set PATH
+
+    hash -r                     # Clear PATH cache (bash)
+
+3.  If not already done already:
+
+    tar xjvf dist/avr-ada-1.2.2.tar.bz2
+
+4.  cd ./avr-ada-1.2.2
+
+5.  cd ./gcc-4.7-rts
+
+6.  patch -p0 <../../avr-ada-122-p1.patch   (Mac OSX only)
+
+The  Mac  install  command doesn't know --preserve-timestamp and
+--mode= options.  The patch above patches the Makefile to use -p
+and -m respectively, which are supported.
+
+7.  cd ~/work/BUILD/avr-ada-1.2.2
+
+8.  cd ./avr/avr_lib
+
+9.  patch -p0 <../../../avr-ada-122-p2.patch
+
+This  patches  the  Makefile so that it doesn't try to build the
+threads  library  for all  targets (an  error will result if you
+don't do this).
+
+10. cd ~/work/BUILD/avr-ada-1.2.2
+
+11. ./configure
+
+Check  the  output  to  make  sure  it  has detected your prefix
+correctly etc.
+
+    $ ./configure
+    -n checking avr-gcc ...
+    OK
+    -n checking avr-gcc version ... 
+    (4.7.2)
+    -n checking avr-gcc installation directory ... 
+    (/opt/avrada-1.2.2)
+    -n checking BUILD directory ... 
+    (/Users/ve3wwg/work/BUILD/avr-ada-1.2.2)
+    
+           Summary
+           =======
+    
+    AVR Ada compiler version = 4.7.2
+    
+    The AVR-Ada run/compile-time system (RTS) will be installed in
+       /opt/avrada-1.2.2/lib/gcc/avr/4.7.2/rts/<MCU>/adainclude
+       /opt/avrada-1.2.2/lib/gcc/avr/4.7.2/rts/<MCU>/adalib
+    
+    The AVR-Ada libraries (libavrada.a) will be installed in
+       /opt/avrada-1.2.2/avr/lib/gnat/avr_lib/<MCU>/lib/libavrada.a
+
+12. make all
+
+13. sudo make install
+
+
+UNDO LIBICONV/LIBINTL (OSX Only)
+--------------------------------
+
+Restore Header files:
+
+	1. sudo -i
+	2. cd /opt/local/include
+	3. mv was.iconv.h iconv.h
+	4. mv was.libintl.h libintl.h
+
+Library files:
+
+	5. cd /opt/local/lib
+	6. mv ./was/* .
+
+
+TESTING:
+--------
+
+    1.  Edit setavr.sh
+
+    PATH="/opt/avrada-1.2.2/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+    2.  . ./setavr.sh
+
+    3.  Go to the blinky example in this repository or try your own project(s).
+
+        a) cd avr/ada/blinky    (within this repository)
+        b) make clobber         (clean old files, if any)
+        c) make 
+
+LINK ERRORS:
+------------
+
+If  you  tried  out  your  new  toolchain  and received an error
+similar to this (here I am using atmega168):
+
+crtm168.o: No such file or directory
+
+Then you need to do one more thing (ideally, this should not
+happen):
+
+    1.  cd /opt/avrada-1.2.2/avr/lib
+
+    2.  ln -s avr5/crtm168.o crtm168.o
+
+This  provides  a symlink to the file in the directory where the
+linker is searching.
+
+If  you're  not sure where your particular file is, use the find
+command:
+
+    $ find /opt/avrada-1.2.2 -name 'crtm168.o'
+
+
+SOME TWEAKS:
+------------
+
+    1.  cd /opt/avrada-1.2.2
+    2.  cd ./avr/lib/gnat
+    3.  sudo dos2ux *.gpr
+
+        (eliminates pesky Windows/DOS CR in project text files)
+
+    4.  sudo edit avr_app.gpr
+
+Change Line:
+
+        Mapfile_Opt := "-Wl,-Map=../" & Main_Name & ".map,--cref";
+to:
+        Mapfile_Opt := "-Wl,-Map=./" & Main_Name & ".map,--cref";
+
+If  you  don't  like  the  map  file  being  created  in the upper level
+directory  (-Map=../).  Better  to  have  it  in  the  project's current
+directory IMO.
+
+
+REMINDER:
+---------
+
+Did  you  put  back your libiconv and libintl libraries? If not,
+then see above how to restore them (this is especially important
+before you do your next macports update).
+
+----------------------------------------------------------------

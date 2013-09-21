@@ -1,0 +1,16 @@
+../gcc-4.7.2/configure \
+    --prefix=/opt/avrada-1.2.2 \
+    --disable-multilib \
+    --target=avr \
+    --program-prefix=avr- \
+    --disable-shared --disable-nls --disable-libssp \
+    --with-system-zlib \
+    --disable-libada \
+    --enable-languages=ada,c,c++ --enable-cpp --with-dwarf2 \
+    --enable-version-specific-runtime-libs \
+    --with-gmp=/opt/local \
+    --with-mpfr=/opt/local \
+    --with-mpc=/opt/local
+set +
+#    --build=x86_64-apple-darwin11   
+

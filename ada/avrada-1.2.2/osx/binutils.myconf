@@ -1,0 +1,3 @@
+../binutils-2.20.1/configure --target=avr --program-prefix=avr- \
+  --disable-shared --disable-nls --enable-commonbfdlib=no \
+  --disable-werror --prefix=/opt/avrada-1.2.2
