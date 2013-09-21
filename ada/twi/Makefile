@@ -25,7 +25,11 @@ dump:
 
 test:	lib/libtwi.a test.gpr testmain.adb test_io.ads test_io.adb
 	$(ADA) $(MFLAGS) -Ptest.gpr
+	avr-size -C --mcu=$(MCU) testmain.elf
 	$(OCP) -O ihex -R .eeprom testmain.elf testmain.hex
+
+size:	testmain.elf
+	avr-size -C --mcu=$(MCU) testmain.elf
 
 lib:	
 	mkdir ./lib
