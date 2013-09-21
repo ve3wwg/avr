@@ -8,10 +8,14 @@ all: blinky.hex
 	
 blinky.hex: Makefile
 	avr-gnatmake $(OPTZ) -XMCU=$(MCU) -Pblinky.gpr -largs -M
+	avr-size -C --mcu=$(MCU) blinky.elf
 	avr-objcopy -O ihex blinky.elf blinky.hex
 
 dump:
 	avr-objdump -mavr:5 -d blinky.elf
+
+size:	blinky.hex blinky.elf
+	avr-size -C --mcu=$(MCU) blinky.elf
 
 clean:
 	rm -f b~*.ad[sb] *.o *.ali *.ihex blinky.elf
