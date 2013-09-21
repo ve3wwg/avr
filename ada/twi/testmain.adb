@@ -1,3 +1,5 @@
+pragma Restrictions(No_Secondary_Stack);
+
 with Test_IO;
 
 procedure TestMain is

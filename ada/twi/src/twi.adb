@@ -8,9 +8,6 @@
 
 with AVR.MCU;
 with AVR.Strings;
-with AVR.Int_Img;
-
-with System;
 
 use AVR.Strings;
 
@@ -18,20 +15,39 @@ package body TWI is
 
     pragma Linker_Options("-lavrada");
 
+    Statuses : Data_Array := ( 0..64 => 0 );
+    pragma Volatile(Statuses);
 
-
-    Statuses : Data_Array := ( 0..16 => 0 );
     SX : Unsigned_16 := Statuses'First;
-
-
-
-    procedure To_Hex(U : Unsigned_8; S : out AVR_String) is
-    begin
-        AVR.Int_Img.U8_Hex_Img(U,S);
-    end to_hex;
+    pragma Volatile(SX);
 
     Count : Unsigned_8 := 0;
     pragma Volatile(Count);
+
+    procedure Clear_Info is
+    begin
+        Statuses := ( 0, others => 0 );
+        SX       := Statuses'First;
+        Count    := 0;
+    end Clear_Info;
+
+    function To_Nibble_Hex(U : Unsigned_8) return Character is
+    begin
+        if U <= 16#09# then
+            return Character'Val(U+Character'Pos('0'));
+        else
+            return Character'Val(U+Character'Pos('A')-10);
+        end if;
+    end To_Nibble_Hex;
+
+    procedure To_Hex(U : Unsigned_8; S : out AVR_String) is
+        Upper, Lower : Unsigned_8;
+    begin
+        Lower := U and 16#0F#;
+        Upper := Shift_Right(U and 16#F0#,4);
+        S(S'First) := To_Nibble_Hex(Upper);
+        S(S'First+1) := To_Nibble_Hex(Lower);
+    end to_hex;
 
     procedure Report(S : out AVR_String) is
     begin
@@ -78,9 +94,6 @@ package body TWI is
     Local_Addr :    Slave_Addr := 0;
     Addr_Mask :     Slave_Addr := 0;
     Mode :          Operation_Mode := Idle;
-    Prev_Status :   Unsigned_8 := 0;
-    Last_Status :   Unsigned_8 := 0;
-
     pragma Volatile(Mode);
 
     function Get_Mode return Character is
@@ -116,11 +129,15 @@ package body TWI is
     N_Requests :    constant Unsigned_8 := 12;  -- Max # of requests at one time
     Request_X :     Unsigned_8 := 0;            -- Current Request index
     Xfer_X :        Unsigned_8 := 0;            -- Current I/O Request index
+    pragma Volatile(Xfer_X);
     Req_Buf_X :     Unsigned_16 := 0;           -- Current buffer index
     Xfer_Buf_X :    Unsigned_16 := 0;           -- Current I/O buffer index
-    Requests :      Msg_Array(0..N_Requests-1); -- List of requests
-    Xfer_Error :    Error_Code := No_Error;     -- Transfer status
+    pragma Volatile(Xfer_Buf_X);
 
+    Requests :      Msg_Array(0..N_Requests-1); -- List of requests
+
+    Xfer_Error :    Error_Code := No_Error;     -- Transfer status
+    pragma Volatile(Xfer_Error);
 
     ------------------------------------------------------------------
     -- Return the Relevant TWSR bits
@@ -155,9 +172,7 @@ package body TWI is
     procedure TWI_Clear_Bus_Error is
     begin
         loop
-            BV_TWSTA := False;
-            BV_TWSTO := True;
-            BV_TWINT := True;
+            TWI_Stop;
             exit when Status = 16#F8#;
 
             for Count in 0..1000 loop
@@ -187,7 +202,10 @@ package body TWI is
     ------------------------------------------------------------------
     procedure Initialize(Addr, Mask : Slave_Addr; Buffer : Data_Array_Ptr) is
         use AVR;
+        Error : Error_Code;
     begin
+
+        Clear_Info;
 
         BV_PRTWI := False;
 
@@ -207,13 +225,11 @@ package body TWI is
         BV_I    := True;
 
         Local_Addr := Addr;
-        Addr_Mask := Mask;
-        Mode := Idle;
-        Buf := Buffer;
+        Addr_Mask  := Mask;
+        Mode       := Idle;
+        Buf        := Buffer;
 
-        Request_X := 0;
-        Req_Buf_X := 0;
-        Mode      := Idle;
+        CLear(Error);
 
     end Initialize;
 
@@ -226,9 +242,10 @@ package body TWI is
         if Mode /= Idle then
             Error      := Busy;
         else
+            Clear_Info;
             Error      := No_Error;
-            Request_X  := 0; 
-            Req_Buf_X  := 0;
+            Request_X  := Requests'First;
+            Req_Buf_X  := Buf'First;
             Mode       := Idle;
         end if;
     end Clear;
@@ -258,6 +275,44 @@ package body TWI is
             end if;
         end if;
     end Write;
+
+    ------------------------------------------------------------------
+    -- Schedule a Master Read of Multiple Bytes
+    ------------------------------------------------------------------
+    procedure Read(Addr : Slave_Addr; Count : Unsigned_16; First, Last : out Unsigned_16; Error : out Error_Code) is
+    begin
+        if Mode /= Idle then
+            Error := Busy;
+        else
+            if Request_X <= Requests'Last then
+                if Req_Buf_X + Count - 1 <= Buf'Last then
+                    First := Req_Buf_X;
+                    Req_Buf_X := Req_Buf_X + Count;
+                    Last := Req_Buf_X - 1;
+
+                    Requests(Request_X).Addr := Addr;
+                    Requests(Request_X).Write := False;
+                    Requests(Request_X).First := First;
+                    Requests(Request_X).Last := Last;
+                    Request_X := Request_X + 1;
+                    Error := No_Error;
+                else
+                    Error := Capacity;
+                end if;
+            else
+                Error := Capacity;
+            end if;
+        end if;
+    end Read;
+
+    ------------------------------------------------------------------
+    -- Schedule a Master Read of 1 Byte
+    ------------------------------------------------------------------
+    procedure Read(Addr : Slave_Addr; Index : out Unsigned_16; Error : out Error_Code) is
+        Last : Unsigned_16;
+    begin
+        Read(Addr,1,Index,Last,Error);
+    end Read;
 
     ------------------------------------------------------------------
     -- Return the buffer indexes of the Xth Transfer "Request"
@@ -304,21 +359,28 @@ package body TWI is
             return;
         end if;
 
-        Error := No_Error;
-        Mode := Master;
+        Clear_Info;
+
         Xfer_X := Requests'First;
         Xfer_Buf_X := Requests(Xfer_X).First;
         Xfer_Error := No_Error;
 
+        BV_TWSTA    := False;
+        BV_TWSTO    := False;
+
         case Status is
         when 16#F8# =>
+            Mode := Master;
+            Error := No_Error;
             TWI_Start;
         when 16#00# =>          -- Bus error
             TWI_Clear_Bus_Error;
+            Mode := Master;
             TWI_Start;
+            Error := No_Error;
         when others =>
+            Mode := Idle;
             Error := Failed;            
-            return;
         end case;
 
     end Master;
@@ -401,9 +463,6 @@ package body TWI is
             SX := SX + 1;
         end if;
 
-        Prev_Status := Last_Status;
-        Last_Status := S;
-
         case S is
         when 16#00# =>  -- Bus error
             TWI_Clear_Bus_Error;
@@ -456,15 +515,10 @@ package body TWI is
         return Xfer_Error;
     end Get_Error;
 
-    procedure PStatus(S : out AVR_String) is
+    procedure CStatus(S : out AVR_String) is
     begin
-        To_Hex(Prev_Status,S);
-    end PStatus;
-
-    procedure LStatus(S : out AVR_String) is
-    begin
-        To_Hex(Last_Status,S);
-    end LStatus;
+        To_Hex(TWCR,S);
+    end CStatus;
 
     procedure XStatus(Str : out AVR_String) is
         U : Unsigned_8;

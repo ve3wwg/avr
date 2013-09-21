@@ -33,6 +33,8 @@ package TWI is
     procedure Clear(Error : out Error_Code);
 
     procedure Write(Addr : Slave_Addr; Data : Data_Array; Error : out Error_Code);
+    procedure Read(Addr : Slave_Addr; Index : out Unsigned_16; Error : out Error_Code);
+    procedure Read(Addr : Slave_Addr; Count : Unsigned_16; First, Last : out Unsigned_16; Error : out Error_Code);
     procedure Indexes(First, Last : out Unsigned_16);
     procedure Indexes(X : Unsigned_8; First, Last : out Unsigned_16);
     procedure Master(Error : out Error_Code);
@@ -43,8 +45,7 @@ package TWI is
 
     function Get_Mode return Character;
 
-    procedure PStatus(S : out AVR.Strings.AVR_String);
-    procedure LStatus(S : out AVR.Strings.AVR_String);
+    procedure CStatus(S : out AVR.Strings.AVR_String);
     procedure XStatus(Str : out AVR.Strings.AVR_String);
 
 end TWI;

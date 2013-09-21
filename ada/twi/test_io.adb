@@ -22,20 +22,24 @@ package body Test_IO is
 
     MCP23017 :  constant TWI.Slave_Addr   := 16#20#;
 
-    IODIR :     constant Unsigned_8 := 16#00#;
+    IODIRA :    constant Unsigned_8 := 16#00#;
+    IODIRB :    constant Unsigned_8 := 16#01#;
     IOCON :     constant Unsigned_8 := 16#0A#;
 
-    IOCON_CFG : constant Unsigned_8 := 16#00#;
-    IODIR_CFG : constant Unsigned_8 := 16#00#;
+    IOCON_CFG : constant Unsigned_8 := 16#00#;  -- Bank=0
+    IODIR_CFG : constant Unsigned_8 := 16#00#;  -- Outputs
 
-    procedure CRLF renames AVR.UART.CRLF;
+    procedure CRLF is
+    begin
+        AVR.UART.Put(Character'Val(16#0D#));
+        AVR.UART.Put(Character'Val(16#0A#));
+    end CRLF;
 
     -- Put one character, translating NL to CRLF
     procedure Put(Ch : Character) is
     begin
         if Character'Pos(Ch) = 16#0A# then
-            AVR.UART.Put(Character'Val(16#0D#));
-            AVR.UART.Put(Character'Val(16#0A#));
+            CRLF;
         else
             AVR.UART.Put(Ch);
         end if;
@@ -48,6 +52,13 @@ package body Test_IO is
             Put(S(X));
         end loop;
     end Put;
+
+    procedure Put_Pstr(S : PStr) is
+    begin
+        for X in S'Range loop
+            Put(S(X));
+        end loop;
+    end Put_Pstr;
 
     -- Put one text line with CRLF
     procedure Put_Line(S : AVR_String) is
@@ -73,6 +84,14 @@ package body Test_IO is
         Put_Line(Buf);
     end X_Status;
 
+    procedure C_Status is
+        Buf : AVR_String(1..2);
+    begin
+        TWI.CStatus(Buf);
+        Put_Line(Buf);
+        CRLF;
+    end C_Status;
+
     procedure Put_Count is
         S : AVR_String(1..2);
     begin
@@ -81,103 +100,114 @@ package body Test_IO is
         Put_Line(S);
     end Put_Count;
 
-    procedure Last_Status is
-        S : AVR_String(1..2);
-    begin
-        Put("Last_Status: ");
-        TWI.PStatus(S);
-        Put(S);
-        Put(" ");
-        TWI.LStatus(S);
-        Put_Line(S);
-    end Last_Status;
+--    procedure Put(Error : TWI.Error_Code) is
+--    begin
+--        case Error is
+--        when TWI.No_Error =>
+--            Put_Line("No_Error.");
+--        when TWI.Busy =>
+--            Put_Line("Busy");
+--        when TWI.Invalid =>
+--            Put_Line("Invalid");
+--        when TWI.Capacity =>
+--            Put_Line("Capacity");
+--        when TWI.Invalid_Buffer =>
+--            Put_Line("Invalid_Buffer");
+--        when TWI.Bad_State =>
+--            Put_Line("State.");
+--        when TWI.SLA_NAK =>
+--            Put_Line("SLA_NAK");
+--        when TWI.Failed =>
+--            Put_Line("Failed");
+--        end case;        
+--    end Put;
 
-    procedure Put(Error : TWI.Error_Code) is
-    begin
-        case Error is
-        when TWI.No_Error =>
-            Put_Line("No_Error.");
-        when TWI.Busy =>
-            Put_Line("Busy");
-        when TWI.Invalid =>
-            Put_Line("Invalid");
-        when TWI.Capacity =>
-            Put_Line("Capacity");
-        when TWI.Invalid_Buffer =>
-            Put_Line("Invalid_Buffer");
-        when TWI.Bad_State =>
-            Put_Line("State.");
-        when TWI.SLA_NAK =>
-            Put_Line("SLA_NAK");
-        when TWI.Failed =>
-            Put_Line("Failed");
-        end case;        
-    end Put;
+--    procedure Put_Error is
+--        E : TWI.Error_Code := TWI.Get_Error;
+--    begin
+--        Put("Error: ");
+--        Put(E);
+--        CRLF;
+--    end Put_Error;
 
-    procedure Put_Error is
-        E : TWI.Error_Code := TWI.Get_Error;
-    begin
-        Put("Error: ");
-        Put(E);
-        CRLF;
-    end Put_Error;
-
-    My_Buffer :    aliased TWI.Data_Array := (0..31 => 0);
+    My_Buffer :    aliased TWI.Data_Array := (0..39 => 0);
 
     procedure Test is
-        use AVR;
+        use AVR, AVR.Strings;
         use TWI;
+
+        Test_Begins :   constant PStr := "Test Begins: ";
+        Ready :         constant PStr := "Ready: ";
+        Init_Msg :      constant PStr := "Init..";
+        Mode_Msg :      constant PStr := "Mode: ";
+        TWCR_Msg :      constant PStr := "TWCR: ";
 
         Buf_Ptr :   Data_Array_Ptr := My_Buffer'Access;
         Error :     Error_Code;
         Ch :        Character;
+        Orig_First : Unsigned_16;
+        A : Data_Array := ( IOCON, IOCON_CFG );
+        B : Data_Array := ( IODIRA, IODIR_CFG );
+        C : Data_Array := ( IODIRB, IODIR_CFG );
     begin
 
-        Put_Line("Test Begins:");
+        AVR.UART.Init(AVR.UART.Baud_19200_16MHz,False);
+
+        Put_Pstr(Test_Begins);
+        CRLF;
 
         loop
-            Put("Ready: ");
+            Put_Pstr(Ready);
             Ch := UART.Get;
             Put(Ch);
             CRLF;
 
             case Ch is
             when 'i' =>
-                Put_Line("Init..");
+                Put_PStr(Init_Msg);
+                CRLF;
                 TWI.Initialize(16#01#,0,Buf_Ptr);
                 Clear(Error);
-                Put(Error);
-            when 'a' =>
-                declare
-                    A : Data_Array := ( IOCON, IOCON_CFG );
-                    B : Data_Array := ( IODIR, IODIR_CFG );
-                begin
-                    TWI.Write(MCP23017,A,Error);
-                    Put(Error);
-                    TWI.Write(MCP23017,B,Error);
-                    Put(Error);
-                end;
+--                Put(Error);
+--#            when 'c' =>
+--#                TWI.Clear(Error);
+--#--                Put(Error);
             when 'x' =>
+                TWI.Write(MCP23017,A,Error);
+--                Put(Error);
+                TWI.Write(MCP23017,B(0..0),Error);
+                TWI.Read(MCP23017,Orig_First,Error);
+--                Put(Error);
+--                    TWI.Write(MCP23017,B,Error);
+--                    Put(Error);
+--                    TWI.Write(MCP23017,C,Error);
+--                    Put(Error);
+
                 Master(Error);
-                Put(Error);
+--                Put(Error);
                 Put_Count;
                 Put_Status;
             when others =>
-                Put_Line("??");
-                Put_Error;
+--                Put_Line("??");
+--                Put_Error;
                 Put_Count;
                 Put_Status;
-                Put("Mode: ");
+                Put_PStr(Mode_Msg);
                 Put(TWI.Get_Mode);
                 CRLF;
-                Last_Status;
+
+--                Put("TWCR:");
+                Put_PStr(TWCR_Msg);
+                C_Status;
+                Put(" ");
                 X_Status;
+--                B := My_Buffer(Orig_First);
+--                Put("B := ");
+--                Put_U8(B);
+--                CRLF;
             end case;
         end loop;
 
     end Test;
 
-begin
-    -- Polled Input Driver:
-    AVR.UART.Init(AVR.UART.Baud_19200_16MHz,False);
 end Test_IO;
