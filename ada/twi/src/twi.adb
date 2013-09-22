@@ -7,29 +7,27 @@
 -- Protected under the GNU GENERAL PUBLIC LICENSE v2, June 1991
 
 with AVR.MCU;
+with AVR.Wait;
 with AVR.Strings;
 
 use AVR.Strings;
 
 package body TWI is
 
-    pragma Linker_Options("-lavrada");
+--    pragma Linker_Options("-lavrada");
 
-    Statuses : Data_Array := ( 0..64 => 0 );
+    Statuses : Data_Array := ( 0..63 => 0 );
     pragma Volatile(Statuses);
 
-    SX : Unsigned_16 := Statuses'First;
+    SX_First :  Unsigned_16 := Statuses'First + 5;
+    SX :        Unsigned_16 := SX_First;
     pragma Volatile(SX);
 
-    Count : Unsigned_8 := 0;
-    pragma Volatile(Count);
-
-    procedure Clear_Info is
-    begin
-        Statuses := ( 0, others => 0 );
-        SX       := Statuses'First;
-        Count    := 0;
-    end Clear_Info;
+    Count :         Unsigned_8 renames Statuses(Statuses'First);
+    Report_TWCR :   Unsigned_8 renames Statuses(Statuses'First+1);
+    Report_Status : Unsigned_8 renames Statuses(Statuses'First+2);
+    Msg_Index :     Unsigned_8 renames Statuses(Statuses'First+3);
+    Buf_Index :     Unsigned_8 renames Statuses(Statuses'First+4);
 
     function To_Nibble_Hex(U : Unsigned_8) return Character is
     begin
@@ -48,11 +46,6 @@ package body TWI is
         S(S'First) := To_Nibble_Hex(Upper);
         S(S'First+1) := To_Nibble_Hex(Lower);
     end to_hex;
-
-    procedure Report(S : out AVR_String) is
-    begin
-        To_Hex(Count,S);
-    end Report;
 
 --  SREG :          Unsigned_8 renames AVR.MCU.SREG;
     BV_I :          Boolean renames AVR.MCU.SREG_Bits(AVR.MCU.I_Bit);
@@ -96,51 +89,24 @@ package body TWI is
     Mode :          Operation_Mode := Idle;
     pragma Volatile(Mode);
 
-    function Get_Mode return Character is
-    begin
-        case Mode is
-        when Idle =>
-            return 'I';
-        when Master =>
-            return 'M';
-        when Slave =>
-            return 'S';
-        end case;
-    end Get_Mode;
-
     ------------------------------------------------------------------
     -- I2C Messages
     ------------------------------------------------------------------
 
-    type Msg_Type is
-        record
-            Addr :          Slave_Addr;
-            Write :         Boolean;
-            First :         Unsigned_16;
-            Last :          Unsigned_16;
-            Failed :        Boolean;
-        end record;
-    
-    type Msg_Array is array (Unsigned_8 range <>) of Msg_Type;
-    type Msg_Array_Ptr is access all Msg_Array;
-
-    Buf :           Data_Array_Ptr;
+    Xfer :          Xfer_Array_Ptr;             -- Transfer I/O messages
+    Buf :           Data_Array_Ptr;             -- I/O buffer
 
     N_Requests :    constant Unsigned_8 := 12;  -- Max # of requests at one time
-    Request_X :     Unsigned_8 := 0;            -- Current Request index
     Xfer_X :        Unsigned_8 := 0;            -- Current I/O Request index
     pragma Volatile(Xfer_X);
-    Req_Buf_X :     Unsigned_16 := 0;           -- Current buffer index
     Xfer_Buf_X :    Unsigned_16 := 0;           -- Current I/O buffer index
     pragma Volatile(Xfer_Buf_X);
-
-    Requests :      Msg_Array(0..N_Requests-1); -- List of requests
 
     Xfer_Error :    Error_Code := No_Error;     -- Transfer status
     pragma Volatile(Xfer_Error);
 
     ------------------------------------------------------------------
-    -- Return the Relevant TWSR bits
+    -- Internal: Return the Relevant TWSR bits
     ------------------------------------------------------------------
     function Status return Unsigned_8 is
     begin
@@ -148,7 +114,7 @@ package body TWI is
     end Status;
 
     ------------------------------------------------------------------
-    -- Start a I2C Transmission
+    -- Internal: Start a I2C Transmission
     ------------------------------------------------------------------
     procedure TWI_Start is
         Start : constant Unsigned_8 := 2#1110_0101#;
@@ -157,7 +123,7 @@ package body TWI is
     end TWI_Start;
 
     ------------------------------------------------------------------
-    -- Stop an I2C Transmission
+    -- Internal: Stop an I2C Transmission
     ------------------------------------------------------------------
     procedure TWI_Stop is
         Stop : constant Unsigned_8 := 2#1101_0101#;
@@ -167,24 +133,20 @@ package body TWI is
     end TWI_Stop;
 
     ------------------------------------------------------------------
-    -- Clear TWI Peripheral out of Bus Error State
+    -- Internal: Clear TWI Peripheral out of Bus Error State
     ------------------------------------------------------------------
     procedure TWI_Clear_Bus_Error is
     begin
-        loop
-            TWI_Stop;
-            exit when Status = 16#F8#;
-
-            for Count in 0..1000 loop
-                if Status = 16#F8# then
-                    return;
-                end if;
-            end loop;
-        end loop;        
+        TWI_Stop;
+        for Count in 0..1000 loop
+            if Status = 16#F8# then
+                return;
+            end if;
+        end loop;
     end TWI_Clear_Bus_Error;
 
     ------------------------------------------------------------------
-    -- Transmit the SLA+W
+    -- Internal: Transmit the SLA+W
     ------------------------------------------------------------------
     procedure TWI_Send_SLA(Addr : Slave_Addr; Write : Boolean) is
         SLA_R : Unsigned_8 := Shift_Left(Unsigned_8(Addr),1);
@@ -198,12 +160,30 @@ package body TWI is
     end TWI_Send_SLA;
 
     ------------------------------------------------------------------
-    -- API - Initialize the I2C Peripheral 
+    -- Clear Debug Info
     ------------------------------------------------------------------
-    procedure Initialize(Addr, Mask : Slave_Addr; Buffer : Data_Array_Ptr) is
-        use AVR;
-        Error : Error_Code;
+    procedure Clear_Info is
     begin
+        Statuses := ( 0, others => 0 );
+        SX       := SX_First;
+        Msg_Index := Xfer_X;
+        Buf_Index := Unsigned_8(Xfer_Buf_X);
+        Count    := 0;
+    end Clear_Info;
+
+    ------------------------------------------------------------------
+    -- API: Initialize the I2C Peripheral 
+    ------------------------------------------------------------------
+    procedure Initialize(Addr, Mask : Slave_Addr) is
+        use AVR;
+    begin
+
+        if BV_TWEN then
+            Reset;
+        end if;
+
+        BV_TWIE := False;
+        BV_TWEA := False;
 
         Clear_Info;
 
@@ -220,164 +200,95 @@ package body TWI is
         TWAR  := Unsigned_8(Addr);
         TWAMR := Unsigned_8(Mask);
 
-        BV_TWIE := True;
-        BV_TWEA := True;
-        BV_I    := True;
 
         Local_Addr := Addr;
         Addr_Mask  := Mask;
         Mode       := Idle;
-        Buf        := Buffer;
+        Buf        := null;
+        Xfer       := null;
 
-        CLear(Error);
+        BV_TWIE := True;
+        BV_TWEA := True;
+        BV_I    := True;
+
+        Mode := Idle;
 
     end Initialize;
 
     ------------------------------------------------------------------
-    -- Clear last completed request
+    -- Internal: Delay n millisconds
     ------------------------------------------------------------------
-    procedure Clear(Error : out Error_Code) is
+    procedure Delay_MS(MS : Natural) is
     begin
-        Error := Invalid;
-        if Mode /= Idle then
-            Error      := Busy;
-        else
-            Clear_Info;
-            Error      := No_Error;
-            Request_X  := Requests'First;
-            Req_Buf_X  := Buf'First;
-            Mode       := Idle;
+        for X in 1..MS loop
+            AVR.Wait.Wait_4_Cycles(8000);
+        end loop;
+    end Delay_MS;
+
+    ------------------------------------------------------------------
+    -- Internal: Reset/recover TWI Peripheral
+    ------------------------------------------------------------------
+    procedure Reset is
+        Stop_No_Int :   constant Unsigned_8 := 2#1101_0100#;
+        EN_Only :       constant Unsigned_8 := 2#0000_0100#;
+    begin
+        if BV_TWINT or else BV_TWSTA then
+            -- Interrupt pending
+            TWCR := Stop_No_Int;
+            Delay_MS(31);
+            TWCR := EN_Only;
+            Delay_MS(31);
+            TWCR := Stop_No_Int;
+            Delay_MS(31);
         end if;
-    end Clear;
+    end Reset;
 
     ------------------------------------------------------------------
-    -- Make a Master I/O Request
+    -- Initiate a Master Mode Transaction
     ------------------------------------------------------------------
-    procedure Write(Addr : Slave_Addr; Data : Data_Array; Error : out Error_Code) is
+    procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code) is
     begin
-        if Mode /= Idle then
-            Error := Busy;
-        else
-            if Request_X <= Requests'Last then
-                Requests(Request_X).Addr := Addr;
-                Requests(Request_X).Write := True;
-                Requests(Request_X).First := Req_Buf_X;
 
-                for X in Data'Range loop
-                    Buf(Req_Buf_X) := Data(X);
-                    Req_Buf_X := Req_Buf_X + 1;
-                end loop;
-                Requests(Request_X).Last  := Req_Buf_X - 1;
-                Request_X := Request_X + 1;
-                Error := No_Error;
-            else
-                Error := Capacity;
-            end if;
-        end if;
-    end Write;
-
-    ------------------------------------------------------------------
-    -- Schedule a Master Read of Multiple Bytes
-    ------------------------------------------------------------------
-    procedure Read(Addr : Slave_Addr; Count : Unsigned_16; First, Last : out Unsigned_16; Error : out Error_Code) is
-    begin
         if Mode /= Idle then
             Error := Busy;
-        else
-            if Request_X <= Requests'Last then
-                if Req_Buf_X + Count - 1 <= Buf'Last then
-                    First := Req_Buf_X;
-                    Req_Buf_X := Req_Buf_X + Count;
-                    Last := Req_Buf_X - 1;
-
-                    Requests(Request_X).Addr := Addr;
-                    Requests(Request_X).Write := False;
-                    Requests(Request_X).First := First;
-                    Requests(Request_X).Last := Last;
-                    Request_X := Request_X + 1;
-                    Error := No_Error;
-                else
-                    Error := Capacity;
-                end if;
-            else
-                Error := Capacity;
-            end if;
-        end if;
-    end Read;
-
-    ------------------------------------------------------------------
-    -- Schedule a Master Read of 1 Byte
-    ------------------------------------------------------------------
-    procedure Read(Addr : Slave_Addr; Index : out Unsigned_16; Error : out Error_Code) is
-        Last : Unsigned_16;
-    begin
-        Read(Addr,1,Index,Last,Error);
-    end Read;
-
-    ------------------------------------------------------------------
-    -- Return the buffer indexes of the Xth Transfer "Request"
-    ------------------------------------------------------------------
-    procedure Indexes(X : Unsigned_8; First, Last : out Unsigned_16) is
-    begin
-        if X >= Requests'First and X <= Requests'Last then
-            First := Requests(X).First;
-            Last  := Requests(X).Last;
-        else
-            First := 0;
-            Last  := 0;
-        end if;
-    end Indexes;
-
-    ------------------------------------------------------------------
-    -- Return the buffer indexes of the LAST Transfer Request
-    ------------------------------------------------------------------
-    procedure Indexes(First, Last : out Unsigned_16) is
-        Last_X : Unsigned_8 := Request_X - 1;
-    begin
-        Indexes(Last_X,First,Last);
-    end Indexes;
-
-    ------------------------------------------------------------------
-    -- Perform a blocking I/O request
-    ------------------------------------------------------------------
-    procedure Master(Error : out Error_Code) is
-    begin
-        if Mode /= Idle then
-            Error := Busy;
-            return;
-        elsif Buf = null then
-            Error := Invalid;
-            return;
-        elsif Request_X <= Requests'First then
-            Error := Invalid;
-            return;
-        elsif Requests(Requests'First).First < Buf'First then
-            Error := Capacity;
-            return;
-        elsif Requests(Request_X-1).Last > Buf'Last then
-            Error := Capacity;
             return;
         end if;
 
         Clear_Info;
 
-        Xfer_X := Requests'First;
-        Xfer_Buf_X := Requests(Xfer_X).First;
-        Xfer_Error := No_Error;
+        if Xfer_Msg = null or else Buffer = null then
+            Error := Invalid;
+            return;
+        end if;
 
-        BV_TWSTA    := False;
-        BV_TWSTO    := False;
+        Xfer := Xfer_Msg;
+        Buf  := Buffer;
+        Xfer_X := Xfer'First;        
+        Error := No_Error;
+
+        for X in Xfer'Range loop
+            Xfer(X).Count := 0;
+            if Xfer(X).First < Buf'First or else Xfer(X).Last > Buf'Last then
+                Error := Invalid;
+            elsif Xfer(X).Last < Xfer(X).First then
+                Error := Invalid;
+            end if;
+        end loop;
+
+        if Error /= No_Error then
+            return;
+        end if;
+
+        Xfer_Buf_X := Xfer(Xfer_X).First;
 
         case Status is
         when 16#F8# =>
             Mode := Master;
-            Error := No_Error;
             TWI_Start;
         when 16#00# =>          -- Bus error
-            TWI_Clear_Bus_Error;
+--            TWI_Clear_Bus_Error;
             Mode := Master;
-            TWI_Start;
-            Error := No_Error;
+--            TWI_Start;
         when others =>
             Mode := Idle;
             Error := Failed;            
@@ -386,22 +297,21 @@ package body TWI is
     end Master;
 
     ------------------------------------------------------------------
-    -- Transmit a Master Mode Byte
+    -- Internal (ISR): Transmit a Master Mode Byte
     ------------------------------------------------------------------
     procedure Xmit_Byte is
         Cmd : Unsigned_8 := 2#1100_0101#;
     begin
 
-        if Xfer_Buf_X <= Requests(Xfer_X).Last then
+        if Xfer_Buf_X <= Xfer(Xfer_X).Last then
             -- Continue current data transmission
             TWDR := Buf(Xfer_Buf_X);
             Xfer_Buf_X := Xfer_Buf_X + 1;
             TWCR := Cmd;
         else
             -- End current transmission
-            Requests(Xfer_X).Failed := False;
             Xfer_X := Xfer_X + 1;
-            if Xfer_X < Request_X then
+            if Xfer_X <= Xfer'Last then
                 TWI_Start;  -- Repeated start
             else
                 TWI_Stop;   -- End of transmission
@@ -418,17 +328,17 @@ package body TWI is
         EA :  constant Unsigned_8 := 2#0100_0000#;
     begin
 
-        if Xfer_Buf_X <= Requests(Xfer_X).Last then
+        if Xfer_Buf_X <= Xfer(Xfer_X).Last then
             Buf(Xfer_Buf_X) := TWDR;
-            if Xfer_Buf_X >= Requests(Xfer_X).Last then
-                Cmd := Cmd xor EA;   -- This last byte will be NAKed
+            if Xfer_Buf_X < Xfer(Xfer_X).Last then
+                Cmd := Cmd or EA;   -- Ack this xfer
             end if;
             Xfer_Buf_X := Xfer_Buf_X + 1;
             TWCR := Cmd;
         else
             -- End current receive
             Xfer_X := Xfer_X + 1;
-            if Xfer_X < Request_X then
+            if Xfer_X <= Xfer'Last then
 	        TWI_Start;
             else
                 TWI_Stop;
@@ -464,80 +374,101 @@ package body TWI is
         end if;
 
         case S is
+
         when 16#00# =>  -- Bus error
-            TWI_Clear_Bus_Error;
-            TWI_Start;
+--            TWI_Clear_Bus_Error;
+--            TWI_Start;
+            null;
+
         when 16#38# =>  -- Arbitration lost in SLA+W transmission
             TWI_Start;  -- Try again
+
         when 16#08# | 16#10# =>  -- Start/Repeated-start has been transmitted
-            Xfer_Buf_X := Requests(Xfer_X).First;
-            TWI_Send_SLA(Requests(Xfer_X).Addr,Requests(Xfer_X).Write);
+            TWI_Send_SLA(Xfer(Xfer_X).Addr,Xfer(Xfer_X).Write);
+
         when 16#20# =>  -- SLA+W transmitted but NAKed
-            Requests(Xfer_X).Failed := True;
+            return;
             Xfer_Error := SLA_NAK;
             TWI_Stop;
+
         when 16#48# =>  -- SLA+R transmitted by NAKed
-            Requests(Xfer_X).Failed := True;
+            return;
             Xfer_Error := SLA_NAK;
             TWI_Stop;
+
         when 16#18# =>  -- SLA+W has been transmitted and ACKed
+            Xfer_Buf_X := Xfer(Xfer_X).First;
             Xmit_Byte;
+
         when 16#28# =>  -- Data byte has been transmitted and ACKed
             Xmit_Byte;
+
         when 16#30# =>  -- Data byte has been transmitted and NAKed
-            Requests(Xfer_X).Last := Xfer_Buf_X;
             Xfer_X := Xfer_X + 1;
-            if Xfer_X < Request_X then
+            if Xfer_X <= Xfer'Last then
                 TWI_Start;      -- This will be a repeated start
             else
                 TWI_Stop;
             end if;
+
         when 16#40# =>  -- SLA+R has been transmitted and ACKed
+            Xfer_Buf_X := Xfer(Xfer_X).First;
             Recv_Byte;
+
         when 16#50# | 16#58# =>
             Recv_Byte;
+
         when 16#F8# =>
             Mode := Idle;
+
         when others =>
             Mode := Idle;
         end case;
 
-    end ISR;
+        Msg_Index := Unsigned_8(Xfer_X);
+        Buf_Index := Unsigned_8(Xfer_Buf_X);
 
-    procedure R_Status(S : out AVR_String) is
-        T : Unsigned_8 := Status;
-    begin
-        To_Hex(T,S);
-    end R_Status;
+    end ISR;
 
     function Get_Error return Error_Code is
     begin
         return Xfer_Error;
     end Get_Error;
 
-    procedure CStatus(S : out AVR_String) is
-    begin
-        To_Hex(TWCR,S);
-    end CStatus;
-
     procedure XStatus(Str : out AVR_String) is
         U : Unsigned_8;
         S : AVR_String(1..2);
         Y : Unsigned_8 := Str'First;
     begin
+        Report_TWCR   := TWCR;
+        Report_Status := Status;
         Str := ( ' ', others => ' ' );
         for X in Statuses'Range loop
+            exit when Y > Str'Last;
             if X >= SX then
-                Str(Y) := '.';
+                Str(Y) := ';';
                 return;
             end if;
             U := Statuses(X);
             To_Hex(U,S);
             Str(Y) := S(S'First);
             Str(Y+1) := S(S'Last);
-            Str(Y+2) := ',';
+            Str(Y+2) := ' ';
             Y := Y + 3;
         end loop;
+
     end XStatus;
+
+    function Get_Mode return Character is
+    begin
+        case Mode is
+        when Idle =>
+            return 'I';
+        when Master =>
+            return 'M';
+        when Slave =>
+            return 'S';
+        end case;
+    end Get_Mode;
 
 end TWI;

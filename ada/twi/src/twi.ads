@@ -28,24 +28,25 @@ package TWI is
     type Data_Array is array(Unsigned_16 range <>) of Unsigned_8;
     type Data_Array_Ptr is access all Data_Array;
 
-    procedure Initialize(Addr, Mask : Slave_Addr; Buffer : Data_Array_Ptr);
+    type Xfer_Type is
+        record
+            Addr :          Slave_Addr;     -- Slave Address
+            Write :         Boolean;        -- True for write, else read
+            First :         Unsigned_16;    -- First buffer index
+            Last :          Unsigned_16;    -- Last buffer index
+            Count :         Unsigned_16;    -- Returned: Actual I/O count
+        end record;
 
-    procedure Clear(Error : out Error_Code);
+    type Xfer_Array is array(Unsigned_8 range <>) of Xfer_Type;
+    type Xfer_Array_Ptr is access all Xfer_Array;
 
-    procedure Write(Addr : Slave_Addr; Data : Data_Array; Error : out Error_Code);
-    procedure Read(Addr : Slave_Addr; Index : out Unsigned_16; Error : out Error_Code);
-    procedure Read(Addr : Slave_Addr; Count : Unsigned_16; First, Last : out Unsigned_16; Error : out Error_Code);
-    procedure Indexes(First, Last : out Unsigned_16);
-    procedure Indexes(X : Unsigned_8; First, Last : out Unsigned_16);
-    procedure Master(Error : out Error_Code);
+    procedure Reset;
+    procedure Initialize(Addr, Mask : Slave_Addr);
+    procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
 
-    procedure Report(S : out AVR.Strings.AVR_String);
-    procedure R_Status(S : out AVR.Strings.AVR_String);
     function Get_Error return Error_Code;
-
     function Get_Mode return Character;
 
-    procedure CStatus(S : out AVR.Strings.AVR_String);
     procedure XStatus(Str : out AVR.Strings.AVR_String);
 
 end TWI;

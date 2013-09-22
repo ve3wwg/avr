@@ -69,14 +69,6 @@ package body Test_IO is
         AVR.UART.CRLF;
     end Put_Line;
 
-    procedure Put_Status is
-        S : AVR_String(1..2);
-    begin
-        Put("Status: ");
-        TWI.R_Status(S);
-        Put_Line(S);
-    end Put_Status;
-
     procedure X_Status is
         Buf : AVR_String(1..60);
     begin
@@ -84,43 +76,27 @@ package body Test_IO is
         Put_Line(Buf);
     end X_Status;
 
-    procedure C_Status is
-        Buf : AVR_String(1..2);
+    procedure Put(Error : TWI.Error_Code) is
     begin
-        TWI.CStatus(Buf);
-        Put_Line(Buf);
-        CRLF;
-    end C_Status;
-
-    procedure Put_Count is
-        S : AVR_String(1..2);
-    begin
-        Put("Count: ");
-        TWI.Report(S);
-        Put_Line(S);
-    end Put_Count;
-
---    procedure Put(Error : TWI.Error_Code) is
---    begin
---        case Error is
---        when TWI.No_Error =>
---            Put_Line("No_Error.");
---        when TWI.Busy =>
---            Put_Line("Busy");
---        when TWI.Invalid =>
---            Put_Line("Invalid");
---        when TWI.Capacity =>
---            Put_Line("Capacity");
---        when TWI.Invalid_Buffer =>
---            Put_Line("Invalid_Buffer");
---        when TWI.Bad_State =>
---            Put_Line("State.");
---        when TWI.SLA_NAK =>
---            Put_Line("SLA_NAK");
---        when TWI.Failed =>
---            Put_Line("Failed");
---        end case;        
---    end Put;
+        case Error is
+        when TWI.No_Error =>
+            Put_Line("No_Error.");
+        when TWI.Busy =>
+            Put_Line("Busy");
+        when TWI.Invalid =>
+            Put_Line("Invalid");
+        when TWI.Capacity =>
+            Put_Line("Capacity");
+        when TWI.Invalid_Buffer =>
+            Put_Line("Invalid_Buffer");
+        when TWI.Bad_State =>
+            Put_Line("State.");
+        when TWI.SLA_NAK =>
+            Put_Line("SLA_NAK");
+        when TWI.Failed =>
+            Put_Line("Failed");
+        end case;        
+    end Put;
 
 --    procedure Put_Error is
 --        E : TWI.Error_Code := TWI.Get_Error;
@@ -130,7 +106,16 @@ package body Test_IO is
 --        CRLF;
 --    end Put_Error;
 
-    My_Buffer :    aliased TWI.Data_Array := (0..39 => 0);
+    My_Buffer :     aliased TWI.Data_Array := (
+                        IOCON, IOCON_CFG,       -- 0..1     Set I/O Config
+                        IODIRA,                 -- 2..2     Set reg = IODIRA
+                        0,                      -- 3..3     Read IODIRA
+                        0 );
+    My_Xfer :       aliased TWI.Xfer_Array := (
+                        ( Addr => MCP23017, Write => True, First => 0, Last => 1, Count => 0 ),
+                        ( Addr => MCP23017, Write => True, First => 2, Last => 2, Count => 0 ),
+                        ( Addr => MCP23017, Write => False, First => 3, Last => 3, Count => 0 )
+                    );
 
     procedure Test is
         use AVR, AVR.Strings;
@@ -140,20 +125,17 @@ package body Test_IO is
         Ready :         constant PStr := "Ready: ";
         Init_Msg :      constant PStr := "Init..";
         Mode_Msg :      constant PStr := "Mode: ";
-        TWCR_Msg :      constant PStr := "TWCR: ";
 
-        Buf_Ptr :   Data_Array_Ptr := My_Buffer'Access;
-        Error :     Error_Code;
-        Ch :        Character;
-        Orig_First : Unsigned_16;
-        A : Data_Array := ( IOCON, IOCON_CFG );
-        B : Data_Array := ( IODIRA, IODIR_CFG );
-        C : Data_Array := ( IODIRB, IODIR_CFG );
+        Buf :           Data_Array_Ptr := My_Buffer'Access;
+        Xfer :          Xfer_Array_Ptr := My_Xfer'Access;
+        Error :         Error_Code;
+        Ch :            Character;
     begin
 
         AVR.UART.Init(AVR.UART.Baud_19200_16MHz,False);
 
         Put_Pstr(Test_Begins);
+        CRLF;
         CRLF;
 
         loop
@@ -166,45 +148,28 @@ package body Test_IO is
             when 'i' =>
                 Put_PStr(Init_Msg);
                 CRLF;
-                TWI.Initialize(16#01#,0,Buf_Ptr);
-                Clear(Error);
---                Put(Error);
---#            when 'c' =>
---#                TWI.Clear(Error);
---#--                Put(Error);
-            when 'x' =>
-                TWI.Write(MCP23017,A,Error);
---                Put(Error);
-                TWI.Write(MCP23017,B(0..0),Error);
-                TWI.Read(MCP23017,Orig_First,Error);
---                Put(Error);
---                    TWI.Write(MCP23017,B,Error);
---                    Put(Error);
---                    TWI.Write(MCP23017,C,Error);
---                    Put(Error);
+                TWI.Initialize(16#01#,0);
 
-                Master(Error);
---                Put(Error);
-                Put_Count;
-                Put_Status;
-            when others =>
---                Put_Line("??");
---                Put_Error;
-                Put_Count;
-                Put_Status;
-                Put_PStr(Mode_Msg);
-                Put(TWI.Get_Mode);
+            when 'x' =>
+                TWI.Master(Xfer,Buf,Error);
+                if Error /= No_Error then
+                    Put_Line("Er!");
+                    Put(Error);
+                    CRLF;
+                end if;
+
+            when 'r' =>
+                TWI.Reset;
+                Put_Line("Reset");
+
+            when ' ' =>
                 CRLF;
 
---                Put("TWCR:");
-                Put_PStr(TWCR_Msg);
-                C_Status;
-                Put(" ");
-                X_Status;
---                B := My_Buffer(Orig_First);
---                Put("B := ");
---                Put_U8(B);
+            when others =>
+--                Put_PStr(Mode_Msg);
+--                Put(TWI.Get_Mode);
 --                CRLF;
+                X_Status;
             end case;
         end loop;
 

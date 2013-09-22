@@ -14,7 +14,7 @@ OPT = s
 
 MFLAGS = -O$(OPT) -p -XMCU=$(MCU)
 
-all:	lib obj lib/libtwi.a test
+all:	test # lib obj lib/libtwi.a test
 
 lib/libtwi.a: lib obj build.gpr
 	$(ADA) $(MFLAGS) -Pbuild.gpr 
@@ -23,7 +23,7 @@ lib/libtwi.a: lib obj build.gpr
 dump:
 	avr-objdump -mavr:5 -d testmain.elf
 
-test:	lib/libtwi.a test.gpr testmain.adb test_io.ads test_io.adb
+test:	test.gpr testmain.adb test_io.ads test_io.adb # lib/libtwi.a 
 	$(ADA) $(MFLAGS) -Ptest.gpr
 	avr-size -C --mcu=$(MCU) testmain.elf
 	$(OCP) -O ihex -R .eeprom testmain.elf testmain.hex
