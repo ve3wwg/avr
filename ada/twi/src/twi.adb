@@ -297,57 +297,6 @@ package body TWI is
     end Master;
 
     ------------------------------------------------------------------
-    -- Internal (ISR): Transmit a Master Mode Byte
-    ------------------------------------------------------------------
-    procedure Xmit_Byte is
-        Cmd : Unsigned_8 := 2#1100_0101#;
-    begin
-
-        if Xfer_Buf_X <= Xfer(Xfer_X).Last then
-            -- Continue current data transmission
-            TWDR := Buf(Xfer_Buf_X);
-            Xfer_Buf_X := Xfer_Buf_X + 1;
-            TWCR := Cmd;
-        else
-            -- End current transmission
-            Xfer_X := Xfer_X + 1;
-            if Xfer_X <= Xfer'Last then
-                TWI_Start;  -- Repeated start
-            else
-                TWI_Stop;   -- End of transmission
-            end if;
-        end if;
-
-    end Xmit_Byte;
-
-    ------------------------------------------------------------------
-    -- Receive a Master Mode Byte
-    ------------------------------------------------------------------
-    procedure Recv_Byte is
-        Cmd : Unsigned_8          := 2#1000_0101#;
-        EA :  constant Unsigned_8 := 2#0100_0000#;
-    begin
-
-        if Xfer_Buf_X <= Xfer(Xfer_X).Last then
-            Buf(Xfer_Buf_X) := TWDR;
-            if Xfer_Buf_X < Xfer(Xfer_X).Last then
-                Cmd := Cmd or EA;   -- Ack this xfer
-            end if;
-            Xfer_Buf_X := Xfer_Buf_X + 1;
-            TWCR := Cmd;
-        else
-            -- End current receive
-            Xfer_X := Xfer_X + 1;
-            if Xfer_X <= Xfer'Last then
-	        TWI_Start;
-            else
-                TWI_Stop;
-            end if;
-        end if;
-
-    end Recv_Byte;
-
-    ------------------------------------------------------------------
     -- Interrupt Service Routine Attributes
     ------------------------------------------------------------------
 
@@ -387,36 +336,66 @@ package body TWI is
             TWI_Send_SLA(Xfer(Xfer_X).Addr,Xfer(Xfer_X).Write);
 
         when 16#20# =>  -- SLA+W transmitted but NAKed
-            return;
             Xfer_Error := SLA_NAK;
             TWI_Stop;
 
         when 16#48# =>  -- SLA+R transmitted by NAKed
-            return;
             Xfer_Error := SLA_NAK;
             TWI_Stop;
 
         when 16#18# =>  -- SLA+W has been transmitted and ACKed
             Xfer_Buf_X := Xfer(Xfer_X).First;
-            Xmit_Byte;
+            TWDR := Buf(Xfer_Buf_X);        -- Send first byte
+            Xfer_Buf_X := Xfer_Buf_X + 1;
+            TWCR := 2#1100_0101#;           -- Transmit
 
         when 16#28# =>  -- Data byte has been transmitted and ACKed
-            Xmit_Byte;
+            if Xfer_Buf_X <= Xfer(Xfer_X).Last then
+                TWDR := Buf(Xfer_Buf_X);    -- Send another byte
+                TWCR := 2#1100_0101#;       -- Transmit
+                Xfer_Buf_X := Xfer_Buf_X + 1;
+            else
+                Xfer_X := Xfer_X + 1;
+                if Xfer_X <= Xfer'Last then
+                    TWI_Start;              -- Repeated start
+                else
+                    TWI_Stop;
+                end if;
+            end if;
 
         when 16#30# =>  -- Data byte has been transmitted and NAKed
             Xfer_X := Xfer_X + 1;
             if Xfer_X <= Xfer'Last then
-                TWI_Start;      -- This will be a repeated start
+                TWI_Start;                  -- Repeated start
             else
                 TWI_Stop;
             end if;
 
         when 16#40# =>  -- SLA+R has been transmitted and ACKed
             Xfer_Buf_X := Xfer(Xfer_X).First;
-            Recv_Byte;
+            if Xfer_Buf_X < Xfer(Xfer_X).Last then
+                TWCR := 2#1100_0101#;       -- More to follow this byte
+            else
+                TWCR := 2#1000_0101#;       -- Only read this 1 byte
+            end if;
 
-        when 16#50# | 16#58# =>
-            Recv_Byte;
+        when 16#50# =>
+            Buf(Xfer_Buf_X) := TWDR;
+            Xfer_Buf_X := Xfer_Buf_X + 1;
+            if Xfer_Buf_X < Xfer(Xfer_X).Last then
+                TWCR := 2#1100_0101#;       -- More to follow this byte
+            else
+                TWCR := 2#1000_0101#;       -- Read one last byte
+            end if;
+
+        when 16#58# =>
+            Buf(Xfer_Buf_X) := TWDR;
+            Xfer_X := Xfer_X + 1;
+            if Xfer_X <= Xfer'Last then
+                TWI_Start;                  -- This will be a repeated start
+            else
+                TWI_Stop;
+            end if;
 
         when 16#F8# =>
             Mode := Idle;

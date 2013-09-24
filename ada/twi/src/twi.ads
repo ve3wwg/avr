@@ -48,5 +48,6 @@ package TWI is
     function Get_Mode return Character;
 
     procedure XStatus(Str : out AVR.Strings.AVR_String);
+    procedure To_Hex(U : Unsigned_8; S : out AVR.Strings.AVR_String);
 
 end TWI;
