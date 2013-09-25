@@ -189,7 +189,7 @@ package body TWI is
     ------------------------------------------------------------------
     -- API: Initialize the I2C Peripheral 
     ------------------------------------------------------------------
-    procedure Initialize(Addr, Mask : Slave_Addr) is
+    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz) is
         use AVR;
     begin
 
@@ -210,8 +210,15 @@ package body TWI is
         DD_C4 := DD_Input;
         BV_C4 := True;          -- Enable pullup
 
-        TWSR  := 0;             -- Prescale = x 1
-        TWBR  := 8;
+        case Rate is
+            when I2C_400khz =>
+                TWSR := 0;      -- Prescale x 1
+                TWBR := 8;
+            when I2C_100khz =>
+                TWSR := 1;      -- Prescale x 4
+                TWBR := 18;
+        end case;
+
         TWAR  := Unsigned_8(Addr);
         TWAMR := Unsigned_8(Mask);
 
@@ -230,6 +237,24 @@ package body TWI is
         Init    := True;
 
     end Initialize;
+
+    ------------------------------------------------------------------
+    -- Set a Custom I2C Clock Rate
+    ------------------------------------------------------------------
+    procedure Custom_Rate(Divisor : Unsigned_8; Prescale : Prescale_Type) is
+    begin
+        case Prescale is
+            when By_1 =>
+                TWSR := 0;      -- Prescale x 1
+            when By_4 =>
+                TWSR := 1;
+            when By_16 =>
+                TWSR := 2;
+            when By_64 =>
+                TWSR := 3;
+        end case;
+        TWBR := Divisor;
+    end Custom_Rate;
 
     ------------------------------------------------------------------
     -- Initiate a Master Mode Transaction

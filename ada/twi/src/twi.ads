@@ -12,6 +12,10 @@ use Interfaces;
 
 package TWI is
 
+    ------------------------------------------------------------------
+    -- Error Codes
+    ------------------------------------------------------------------
+
     type Error_Code is (
         No_Error,           -- No error (Success)
         Busy,               -- TWI is busy with a current request
@@ -51,8 +55,25 @@ package TWI is
     type Xfer_Array is array(Unsigned_8 range <>) of Xfer_Type;
     type Xfer_Array_Ptr is access all Xfer_Array;
 
+    ------------------------------------------------------------------
+    -- API
+    ------------------------------------------------------------------
 
-    procedure Initialize(Addr, Mask : Slave_Addr);
+    type I2C_Rate is (
+        I2C_400khz,
+        I2C_100khz
+    );
+
+    type Prescale_Type is (
+        By_1,
+        By_4,
+        By_16,
+        By_64
+    );
+
+    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz);
+    procedure Custom_Rate(Divisor : Unsigned_8; Prescale : Prescale_Type);
+
     procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
     procedure Complete(Error : out Error_Code; Block : Boolean := true);
 
