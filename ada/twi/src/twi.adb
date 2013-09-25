@@ -159,6 +159,34 @@ package body TWI is
     end Clear_Info;
 
     ------------------------------------------------------------------
+    -- Internal: Delay n millisconds
+    ------------------------------------------------------------------
+    procedure Delay_MS(MS : Natural) is
+    begin
+        for X in 1..MS loop
+            AVR.Wait.Wait_4_Cycles(8000);
+        end loop;
+    end Delay_MS;
+
+    ------------------------------------------------------------------
+    -- Internal: Reset/recover TWI Peripheral
+    ------------------------------------------------------------------
+    procedure Reset is
+        Stop_No_Int :   constant Unsigned_8 := 2#1101_0100#;
+        EN_Only :       constant Unsigned_8 := 2#0000_0100#;
+    begin
+        if BV_TWINT or else BV_TWSTA then
+            -- Interrupt pending
+            TWCR := Stop_No_Int;
+            Delay_MS(31);
+            TWCR := EN_Only;
+            Delay_MS(31);
+            TWCR := Stop_No_Int;
+            Delay_MS(31);
+        end if;
+    end Reset;
+
+    ------------------------------------------------------------------
     -- API: Initialize the I2C Peripheral 
     ------------------------------------------------------------------
     procedure Initialize(Addr, Mask : Slave_Addr) is
@@ -166,7 +194,7 @@ package body TWI is
     begin
 
         if BV_TWEN then
-            Reset;
+            Reset;              -- Reset the hardware, if necessary
         end if;
 
         BV_TWIE := False;
@@ -202,34 +230,6 @@ package body TWI is
         Init    := True;
 
     end Initialize;
-
-    ------------------------------------------------------------------
-    -- Internal: Delay n millisconds
-    ------------------------------------------------------------------
-    procedure Delay_MS(MS : Natural) is
-    begin
-        for X in 1..MS loop
-            AVR.Wait.Wait_4_Cycles(8000);
-        end loop;
-    end Delay_MS;
-
-    ------------------------------------------------------------------
-    -- Internal: Reset/recover TWI Peripheral
-    ------------------------------------------------------------------
-    procedure Reset is
-        Stop_No_Int :   constant Unsigned_8 := 2#1101_0100#;
-        EN_Only :       constant Unsigned_8 := 2#0000_0100#;
-    begin
-        if BV_TWINT or else BV_TWSTA then
-            -- Interrupt pending
-            TWCR := Stop_No_Int;
-            Delay_MS(31);
-            TWCR := EN_Only;
-            Delay_MS(31);
-            TWCR := Stop_No_Int;
-            Delay_MS(31);
-        end if;
-    end Reset;
 
     ------------------------------------------------------------------
     -- Initiate a Master Mode Transaction

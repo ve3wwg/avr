@@ -26,11 +26,19 @@ package TWI is
     type Data_Array is array(Unsigned_16 range <>) of Unsigned_8;
     type Data_Array_Ptr is access all Data_Array;
 
+    ------------------------------------------------------------------
+    -- I2C Transfer Kind
+    ------------------------------------------------------------------
+
     type Xfer_Kind is (
         Write,              -- Write 1 or more bytes
-        Null_Write,         -- Issue Restart immediately (write 0 bytes)
+        Null_Write,         -- Issue Restart immediately after SLA+W (write 0 bytes: First,Last ignored)
         Read                -- Read 1 or more bytes
     );
+
+    ------------------------------------------------------------------
+    -- I2C Transaction
+    ------------------------------------------------------------------
 
     type Xfer_Type is
         record
@@ -43,12 +51,12 @@ package TWI is
     type Xfer_Array is array(Unsigned_8 range <>) of Xfer_Type;
     type Xfer_Array_Ptr is access all Xfer_Array;
 
+
     procedure Initialize(Addr, Mask : Slave_Addr);
     procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
     procedure Complete(Error : out Error_Code; Block : Boolean := true);
 
-    procedure Reset;
-
+    -- For debugging only
     procedure Get_Status(Stat : out Data_Array; X : out Unsigned_16);
 
 end TWI;
