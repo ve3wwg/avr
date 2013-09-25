@@ -28,21 +28,29 @@ package TWI is
     type Data_Array is array(Unsigned_16 range <>) of Unsigned_8;
     type Data_Array_Ptr is access all Data_Array;
 
+    type Xfer_Kind is (
+        Write,              -- Write 1 or more bytes
+        Null_Write,         -- Issue Restart immediately (write 0 bytes)
+        Read                -- Read 1 or more bytes
+    );
+
     type Xfer_Type is
         record
             Addr :          Slave_Addr;     -- Slave Address
-            Write :         Boolean;        -- True for write, else read
+            Xfer :          Xfer_Kind;      -- Read/Write
             First :         Unsigned_16;    -- First buffer index
             Last :          Unsigned_16;    -- Last buffer index
-            Count :         Unsigned_16;    -- Returned: Actual I/O count
         end record;
 
     type Xfer_Array is array(Unsigned_8 range <>) of Xfer_Type;
     type Xfer_Array_Ptr is access all Xfer_Array;
 
     procedure Reset;
+
     procedure Initialize(Addr, Mask : Slave_Addr);
     procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
+    procedure Complete(Error : out Error_Code; Block : Boolean := true);
+
 
     function Get_Error return Error_Code;
     function Get_Mode return Character;

@@ -26,7 +26,7 @@ package body Test_IO is
     IODIRB :    constant Unsigned_8 := 16#01#;
     IOCON :     constant Unsigned_8 := 16#0A#;
 
-    IOCON_CFG : constant Unsigned_8 := 2#0010_0000#;
+    IOCON_CFG : constant Unsigned_8 := 2#0000_0000#;
     IODIR_CFG : constant Unsigned_8 := 16#00#;  -- Outputs
 
     procedure CRLF is
@@ -115,20 +115,35 @@ package body Test_IO is
 
     My_Buffer :     aliased TWI.Data_Array := (
                         IOCON,  IOCON_CFG,      -- 0..1     Set Register Config (/SEQOP)
-                        IODIRA, 16#E5#,         -- 2..3     Set I/O Config
-                        IODIRA,                 -- 4..4     Set reg = IODIRA
-                        0,                      -- 5..5     Read IODIRA
+                        IODIRA, 16#C3#,         -- 2..3     Set I/O Config
+                        0,                      -- 4..4     Read IODIRA
+                        IODIRA, 16#AA#, 16#33#, -- 5..7     IODIRA = AA, B=33
+                        IODIRB,                 -- 8..8
+                        IODIRA, 16#12#, 16#34#, -- 9..11
                         0 );
-    My_Xfer :       aliased TWI.Xfer_Array := (
---                        ( Addr => MCP23017, Write => True, First => 0, Last => 1, Count => 0 ),
-                        0..0 => ( Addr => MCP23017, Write => True, First => 2, Last => 3, Count => 0 )
---                        ( Addr => MCP23017, Write => True, First => 4, Last => 4, Count => 0 ),
---                        ( Addr => MCP23017, Write => False, First => 5, Last => 5, Count => 0 )
+
+    Xfer_0 :        aliased TWI.Xfer_Array := (
+                        0 => ( Addr => MCP23017, Xfer => TWI.Write, First => 0, Last => 1 )
                     );
 
-    My_Xfer2 :      aliased TWI.Xfer_Array := (
-                        ( Addr => MCP23017, Write => True, First => 4, Last => 4, Count => 0 ),
-                        ( Addr => MCP23017, Write => False, First => 5, Last => 5, Count => 0 )
+    Xfer_1 :        aliased TWI.Xfer_Array := (
+                        ( Addr => MCP23017, Xfer => TWI.Write, First => 9, Last => 11 ),
+                        ( Addr => MCP23017, Xfer => TWI.Write, First => 2, Last => 2 ),
+                        ( Addr => MCP23017, Xfer => TWI.Read,  First => 4, Last => 4 )
+                    );
+
+    Xfer_2 :        aliased TWI.Xfer_Array := (
+                        ( Addr => MCP23017, Xfer => TWI.Write, First => 2, Last => 2 ),
+                        ( Addr => MCP23017, Xfer => TWI.Read,  First => 4, Last => 4 )
+                    );
+
+    Xfer_3 :        aliased TWI.Xfer_Array := (
+                        0 => ( Addr => MCP23017, Xfer => TWI.Write, First => 5, Last => 7 )
+                    );
+
+    Xfer_4 :        aliased TWI.Xfer_Array := (
+                        ( Addr => MCP23017, Xfer => TWI.Write, First => 8, Last => 8 ),
+                        ( Addr => MCP23017, Xfer => TWI.Read,  First => 4, Last => 4 )
                     );
 
     procedure Test is
@@ -162,28 +177,40 @@ package body Test_IO is
                 CRLF;
                 TWI.Initialize(16#01#,0);
 
-            when 'x' =>
-                TWI.Master(My_Xfer'Access,My_Buffer'Access,Error);
+            when '0' =>
+                TWI.Master(Xfer_0'Access,My_Buffer'Access,Error);
+
+            when '1' =>
+                TWI.Master(Xfer_1'Access,My_Buffer'Access,Error);
                 if Error /= No_Error then
                     Put_Line("Er!");
                     Put(Error);
                     CRLF;
                 end if;
 
-            when 'y' =>
-                TWI.Master(My_Xfer2'Access,My_Buffer'Access,Error);
+            when '2' =>
+                TWI.Master(Xfer_2'Access,My_Buffer'Access,Error);
                 if Error /= No_Error then
                     Put_Line("Er!");
                     Put(Error);
                     CRLF;
                 end if;
+
+            when '3' =>
+                TWI.Master(Xfer_3'Access,My_Buffer'Access,Error);
+                TWI.Complete(Error);
+                Put(Error);
+                CRLF;
+
+            when '4' =>
+                TWI.Master(Xfer_4'Access,My_Buffer'Access,Error);
 
             when 'r' =>
                 TWI.Reset;
                 Put_Line("Reset");
 
             when 'v' =>
-                Put_Byte(My_Buffer(5));
+                Put_Byte(My_Buffer(4));
                 CRLF;
 
             when ' ' =>

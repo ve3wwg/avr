@@ -148,16 +148,19 @@ package body TWI is
     ------------------------------------------------------------------
     -- Internal: Transmit the SLA+W
     ------------------------------------------------------------------
-    procedure TWI_Send_SLA(Addr : Slave_Addr; Write : Boolean) is
+    procedure Xmit_SLA(Addr : Slave_Addr; Xfer : Xfer_Kind) is
         SLA_R : Unsigned_8 := Shift_Left(Unsigned_8(Addr),1);
         Cmd   : Unsigned_8 := 2#1100_0101#;
     begin
-        if not Write then
-            SLA_R := SLA_R or 1;
-        end if;
+        case Xfer is
+            when Read =>
+                SLA_R := SLA_R or 1;
+            when Write | Null_Write =>
+                null;
+        end case;
         TWDR := SLA_R;
         TWCR := Cmd;
-    end TWI_Send_SLA;
+    end Xmit_SLA;
 
     ------------------------------------------------------------------
     -- Clear Debug Info
@@ -267,7 +270,6 @@ package body TWI is
         Error := No_Error;
 
         for X in Xfer'Range loop
-            Xfer(X).Count := 0;
             if Xfer(X).First < Buf'First or else Xfer(X).Last > Buf'Last then
                 Error := Invalid;
             elsif Xfer(X).Last < Xfer(X).First then
@@ -286,15 +288,31 @@ package body TWI is
             Mode := Master;
             TWI_Start;
         when 16#00# =>          -- Bus error
---            TWI_Clear_Bus_Error;
+            TWI_Clear_Bus_Error;
             Mode := Master;
---            TWI_Start;
+            TWI_Start;
         when others =>
             Mode := Idle;
             Error := Failed;            
         end case;
 
     end Master;
+
+    ------------------------------------------------------------------
+    -- Wait until completion
+    ------------------------------------------------------------------
+
+    procedure Complete(Error : out Error_Code; Block : Boolean := true) is
+    begin
+
+        while Mode /= Idle loop
+            if not Block then
+                Error := Busy;
+            end if;
+        end loop;
+        Error := Xfer_Error;
+
+    end Complete;
 
     ------------------------------------------------------------------
     -- Interrupt Service Routine Attributes
@@ -333,7 +351,7 @@ package body TWI is
             TWI_Start;  -- Try again
 
         when 16#08# | 16#10# =>  -- Start/Repeated-start has been transmitted
-            TWI_Send_SLA(Xfer(Xfer_X).Addr,Xfer(Xfer_X).Write);
+            Xmit_SLA(Xfer(Xfer_X).Addr,Xfer(Xfer_X).Xfer);
 
         when 16#20# =>  -- SLA+W transmitted but NAKed
             Xfer_Error := SLA_NAK;
@@ -344,10 +362,19 @@ package body TWI is
             TWI_Stop;
 
         when 16#18# =>  -- SLA+W has been transmitted and ACKed
-            Xfer_Buf_X := Xfer(Xfer_X).First;
-            TWDR := Buf(Xfer_Buf_X);        -- Send first byte
-            Xfer_Buf_X := Xfer_Buf_X + 1;
-            TWCR := 2#1100_0101#;           -- Transmit
+            if Xfer(Xfer_X).Xfer /= Null_Write then
+                Xfer_Buf_X := Xfer(Xfer_X).First;
+                TWDR := Buf(Xfer_Buf_X);        -- Send first byte
+                Xfer_Buf_X := Xfer_Buf_X + 1;
+                TWCR := 2#1100_0101#;           -- Transmit
+            else
+                Xfer_X := Xfer_X + 1;
+                if Xfer_X <= Xfer'Last then
+                    TWI_Start;                  -- Repeated start
+                else
+                    TWI_Stop;
+                end if;
+            end if;
 
         when 16#28# =>  -- Data byte has been transmitted and ACKed
             if Xfer_Buf_X <= Xfer(Xfer_X).Last then
