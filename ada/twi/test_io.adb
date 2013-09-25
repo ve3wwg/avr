@@ -91,8 +91,10 @@ package body Test_IO is
     procedure Put_Byte(U : Unsigned_8) is
         S : AVR_String(1..2);
     begin
+        Put("Byte: ");
         To_Hex(U,S);
         Put(S);
+        CRLF;
     end Put_Byte;
 
     procedure Put(Error : TWI.Error_Code) is
@@ -141,6 +143,18 @@ package body Test_IO is
 --        Put(E);
 --        CRLF;
 --    end Put_Error;
+
+    procedure Report_Error(Error : TWI.Error_Code) is
+        use TWI;
+    begin
+
+        if Error /= No_Error then
+            Put_Line("Er!");
+            Put(Error);
+            CRLF;
+        end if;
+    end Report_Error;
+
 
     My_Buffer :     aliased TWI.Data_Array := (
                         IOCON,  IOCON_CFG,      -- 0..1     Set Register Config (/SEQOP)
@@ -208,35 +222,35 @@ package body Test_IO is
 
             when '0' =>
                 TWI.Master(Xfer_0'Access,My_Buffer'Access,Error);
+                Report_Error(Error);
+                TWI.Complete(Error);
+                Report_Error(Error);
 
             when '1' =>
                 TWI.Master(Xfer_1'Access,My_Buffer'Access,Error);
-                if Error /= No_Error then
-                    Put_Line("Er!");
-                    Put(Error);
-                    CRLF;
-                end if;
+                Report_Error(Error);
+                TWI.Complete(Error);
+                Report_Error(Error);
 
             when '2' =>
                 TWI.Master(Xfer_2'Access,My_Buffer'Access,Error);
-                if Error /= No_Error then
-                    Put_Line("Er!");
-                    Put(Error);
-                    CRLF;
-                end if;
+                Report_Error(Error);
+                TWI.Complete(Error);
+                Report_Error(Error);
+                Put_Byte(My_Buffer(4));
 
             when '3' =>
                 TWI.Master(Xfer_3'Access,My_Buffer'Access,Error);
+                Report_Error(Error);
                 TWI.Complete(Error);
-                Put(Error);
-                CRLF;
+                Report_Error(Error);
 
             when '4' =>
                 TWI.Master(Xfer_4'Access,My_Buffer'Access,Error);
-
-            when 'r' =>
-                TWI.Reset;
-                Put_Line("Reset");
+                Report_Error(Error);
+                TWI.Complete(Error);
+                Report_Error(Error);
+                Put_Byte(My_Buffer(4));
 
             when 'v' =>
                 Put_Byte(My_Buffer(4));
@@ -246,9 +260,6 @@ package body Test_IO is
                 CRLF;
 
             when others =>
---                Put_PStr(Mode_Msg);
---                Put(TWI.Get_Mode);
---                CRLF;
                 XStatus;
             end case;
         end loop;
