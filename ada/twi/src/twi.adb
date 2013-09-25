@@ -14,9 +14,7 @@ use AVR.Strings;
 
 package body TWI is
 
---    pragma Linker_Options("-lavrada");
-
-    Statuses : Data_Array := ( 0..63 => 0 );
+    Statuses : Data_Array := ( 0..63 => 0 );    -- For debugging
     pragma Volatile(Statuses);
 
     SX_First :  Unsigned_16 := Statuses'First + 5;
@@ -28,24 +26,6 @@ package body TWI is
     Report_Status : Unsigned_8 renames Statuses(Statuses'First+2);
     Msg_Index :     Unsigned_8 renames Statuses(Statuses'First+3);
     Buf_Index :     Unsigned_8 renames Statuses(Statuses'First+4);
-
-    function To_Nibble_Hex(U : Unsigned_8) return Character is
-    begin
-        if U <= 16#09# then
-            return Character'Val(U+Character'Pos('0'));
-        else
-            return Character'Val(U+Character'Pos('A')-10);
-        end if;
-    end To_Nibble_Hex;
-
-    procedure To_Hex(U : Unsigned_8; S : out AVR_String) is
-        Upper, Lower : Unsigned_8;
-    begin
-        Lower := U and 16#0F#;
-        Upper := Shift_Right(U and 16#F0#,4);
-        S(S'First) := To_Nibble_Hex(Upper);
-        S(S'First+1) := To_Nibble_Hex(Lower);
-    end to_hex;
 
 --  SREG :          Unsigned_8 renames AVR.MCU.SREG;
     BV_I :          Boolean renames AVR.MCU.SREG_Bits(AVR.MCU.I_Bit);
@@ -436,45 +416,23 @@ package body TWI is
 
     end ISR;
 
-    function Get_Error return Error_Code is
-    begin
-        return Xfer_Error;
-    end Get_Error;
+    ------------------------------------------------------------------
+    -- Debugging Access
+    ------------------------------------------------------------------
 
-    procedure XStatus(Str : out AVR_String) is
-        U : Unsigned_8;
-        S : AVR_String(1..2);
-        Y : Unsigned_8 := Str'First;
+    procedure Get_Status(Stat : out Data_Array; X : out Unsigned_16) is
+        K : Unsigned_16 := Statuses'First;
     begin
+        X             := SX;
         Report_TWCR   := TWCR;
         Report_Status := Status;
-        Str := ( ' ', others => ' ' );
-        for X in Statuses'Range loop
-            exit when Y > Str'Last;
-            if X >= SX then
-                Str(Y) := ';';
-                return;
-            end if;
-            U := Statuses(X);
-            To_Hex(U,S);
-            Str(Y) := S(S'First);
-            Str(Y+1) := S(S'Last);
-            Str(Y+2) := ' ';
-            Y := Y + 3;
+
+        for J in Stat'Range loop
+            exit when K > Statuses'Last;
+            Stat(J) := Statuses(K);
+            K := K + 1;
         end loop;
 
-    end XStatus;
-
-    function Get_Mode return Character is
-    begin
-        case Mode is
-        when Idle =>
-            return 'I';
-        when Master =>
-            return 'M';
-        when Slave =>
-            return 'S';
-        end case;
-    end Get_Mode;
+    end Get_Status;
 
 end TWI;

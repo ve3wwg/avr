@@ -20,6 +20,25 @@ with TWI;
 
 package body Test_IO is
 
+    function To_Nibble_Hex(U : Unsigned_8) return Character is
+    begin
+        if U <= 16#09# then
+            return Character'Val(U+Character'Pos('0'));
+        else
+            return Character'Val(U+Character'Pos('A')-10);
+        end if;
+    end To_Nibble_Hex;
+
+    procedure To_Hex(U : Unsigned_8; S : out AVR_String) is
+        Upper, Lower : Unsigned_8;
+    begin
+        Lower := U and 16#0F#;
+        Upper := Shift_Right(U and 16#F0#,4);
+        S(S'First) := To_Nibble_Hex(Upper);
+        S(S'First+1) := To_Nibble_Hex(Lower);
+    end to_hex;
+
+
     MCP23017 :  constant TWI.Slave_Addr   := 16#20#;
 
     IODIRA :    constant Unsigned_8 := 16#00#;
@@ -69,17 +88,10 @@ package body Test_IO is
         AVR.UART.CRLF;
     end Put_Line;
 
-    procedure X_Status is
-        Buf : AVR_String(1..60);
-    begin
-        TWI.XStatus(Buf);
-        Put_Line(Buf);
-    end X_Status;
-
     procedure Put_Byte(U : Unsigned_8) is
         S : AVR_String(1..2);
     begin
-        TWI.To_Hex(U,S);
+        To_Hex(U,S);
         Put(S);
     end Put_Byte;
 
@@ -92,18 +104,33 @@ package body Test_IO is
             Put_Line("Busy");
         when TWI.Invalid =>
             Put_Line("Invalid");
-        when TWI.Capacity =>
-            Put_Line("Capacity");
-        when TWI.Invalid_Buffer =>
-            Put_Line("Invalid_Buffer");
-        when TWI.Bad_State =>
-            Put_Line("State.");
         when TWI.SLA_NAK =>
             Put_Line("SLA_NAK");
         when TWI.Failed =>
             Put_Line("Failed");
         end case;        
     end Put;
+
+    procedure XStatus is
+        S : AVR_String(1..2);
+        Z : TWI.Data_Array(0..63);
+        SX : Unsigned_16;
+    begin
+
+        TWI.Get_Status(Z,SX);
+
+        for X in Z'Range loop
+            exit when X > SX;
+
+            To_Hex(Z(X),S);
+            Put(S);
+            Put(' ');
+        end loop;
+
+        Put(';');
+        CRLF;
+
+    end XStatus;
 
 --    procedure Put_Error is
 --        E : TWI.Error_Code := TWI.Get_Error;
@@ -220,7 +247,7 @@ package body Test_IO is
 --                Put_PStr(Mode_Msg);
 --                Put(TWI.Get_Mode);
 --                CRLF;
-                X_Status;
+                XStatus;
             end case;
         end loop;
 

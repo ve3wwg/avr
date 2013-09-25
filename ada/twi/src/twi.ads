@@ -14,11 +14,8 @@ package TWI is
 
     type Error_Code is (
         No_Error,           -- No error (Success)
-        Invalid_Buffer,     -- Invalid or null buffer pointer
         Busy,               -- TWI is busy with a current request
-        Capacity,           -- Too many Requests/Bytes
         Invalid,            -- Invalid request
-        Bad_State,          -- Unable to ready the TWI controller
         SLA_NAK,            -- SLA+W received a NAK
         Failed              -- Failed for an unknown reason
     );
@@ -45,17 +42,12 @@ package TWI is
     type Xfer_Array is array(Unsigned_8 range <>) of Xfer_Type;
     type Xfer_Array_Ptr is access all Xfer_Array;
 
-    procedure Reset;
-
     procedure Initialize(Addr, Mask : Slave_Addr);
     procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
     procedure Complete(Error : out Error_Code; Block : Boolean := true);
 
+    procedure Reset;
 
-    function Get_Error return Error_Code;
-    function Get_Mode return Character;
-
-    procedure XStatus(Str : out AVR.Strings.AVR_String);
-    procedure To_Hex(U : Unsigned_8; S : out AVR.Strings.AVR_String);
+    procedure Get_Status(Stat : out Data_Array; X : out Unsigned_16);
 
 end TWI;
