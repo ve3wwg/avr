@@ -64,10 +64,8 @@ package body TWI is
     -- Configuration
     ------------------------------------------------------------------
 
-    Local_Addr :    Slave_Addr := 0;
+    Local_Addr :    Slave_Addr := 16#7F#;
     Addr_Mask :     Slave_Addr := 0;
-    Mode :          Operation_Mode := Idle;
-    pragma Volatile(Mode);
 
     ------------------------------------------------------------------
     -- I2C Messages
@@ -76,14 +74,20 @@ package body TWI is
     Xfer :          Xfer_Array_Ptr;             -- Transfer I/O messages
     Buf :           Data_Array_Ptr;             -- I/O buffer
 
-    N_Requests :    constant Unsigned_8 := 12;  -- Max # of requests at one time
     Xfer_X :        Unsigned_8 := 0;            -- Current I/O Request index
     pragma Volatile(Xfer_X);
+
     Xfer_Buf_X :    Unsigned_16 := 0;           -- Current I/O buffer index
     pragma Volatile(Xfer_Buf_X);
 
     Xfer_Error :    Error_Code := No_Error;     -- Transfer status
     pragma Volatile(Xfer_Error);
+
+    Init :          Boolean := False;           -- True once initialized
+    Stopped :       Boolean := False;           -- True when stopped
+
+    Mode :          Operation_Mode := Idle;
+    pragma Volatile(Mode);
 
     ------------------------------------------------------------------
     -- Internal: Return the Relevant TWSR bits
@@ -183,10 +187,10 @@ package body TWI is
         TWAR  := Unsigned_8(Addr);
         TWAMR := Unsigned_8(Mask);
 
-
         Local_Addr := Addr;
         Addr_Mask  := Mask;
         Mode       := Idle;
+
         Buf        := null;
         Xfer       := null;
 
@@ -194,7 +198,8 @@ package body TWI is
         BV_TWEA := True;
         BV_I    := True;
 
-        Mode := Idle;
+        Mode    := Idle;
+        Init    := True;
 
     end Initialize;
 
@@ -232,6 +237,11 @@ package body TWI is
     procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code) is
     begin
 
+        if not Init then
+            Error := Invalid;
+            return;
+        end if;
+
         if Mode /= Idle then
             Error := Busy;
             return;
@@ -244,10 +254,10 @@ package body TWI is
             return;
         end if;
 
-        Xfer := Xfer_Msg;
-        Buf  := Buffer;
-        Xfer_X := Xfer'First;        
-        Error := No_Error;
+        Xfer    := Xfer_Msg;
+        Buf     := Buffer;
+        Xfer_X  := Xfer'First;        
+        Error   := No_Error;
 
         for X in Xfer'Range loop
             if Xfer(X).First < Buf'First or else Xfer(X).Last > Buf'Last then
@@ -262,6 +272,7 @@ package body TWI is
         end if;
 
         Xfer_Buf_X := Xfer(Xfer_X).First;
+        Stopped := False;
 
         case Status is
         when 16#F8# =>
@@ -285,11 +296,22 @@ package body TWI is
     procedure Complete(Error : out Error_Code; Block : Boolean := true) is
     begin
 
+        -- Loop while I/O pending
         while Mode /= Idle loop
             if not Block then
                 Error := Busy;
+                return;
             end if;
         end loop;
+
+        -- Loop waiting for Stop bit to be sent
+        while BV_TWSTO loop
+            if not Block then
+                Error := Busy;
+                return;
+            end if;
+        end loop;
+
         Error := Xfer_Error;
 
     end Complete;
@@ -323,9 +345,9 @@ package body TWI is
         case S is
 
         when 16#00# =>  -- Bus error
---            TWI_Clear_Bus_Error;
---            TWI_Start;
-            null;
+            Xfer_Error := Bus_Error;
+            Mode := Idle;
+            Stopped := False;   -- Don't wait for stop status to change
 
         when 16#38# =>  -- Arbitration lost in SLA+W transmission
             TWI_Start;  -- Try again
@@ -335,10 +357,12 @@ package body TWI is
 
         when 16#20# =>  -- SLA+W transmitted but NAKed
             Xfer_Error := SLA_NAK;
+            Stopped := True;
             TWI_Stop;
 
         when 16#48# =>  -- SLA+R transmitted by NAKed
             Xfer_Error := SLA_NAK;
+            Stopped := True;
             TWI_Stop;
 
         when 16#18# =>  -- SLA+W has been transmitted and ACKed
@@ -353,6 +377,7 @@ package body TWI is
                     TWI_Start;                  -- Repeated start
                 else
                     TWI_Stop;
+                    Stopped := true;
                 end if;
             end if;
 
@@ -367,6 +392,7 @@ package body TWI is
                     TWI_Start;              -- Repeated start
                 else
                     TWI_Stop;
+                    Stopped := true;
                 end if;
             end if;
 
@@ -376,6 +402,7 @@ package body TWI is
                 TWI_Start;                  -- Repeated start
             else
                 TWI_Stop;
+                Stopped := true;
             end if;
 
         when 16#40# =>  -- SLA+R has been transmitted and ACKed
@@ -402,13 +429,13 @@ package body TWI is
                 TWI_Start;                  -- This will be a repeated start
             else
                 TWI_Stop;
+                Stopped := true;
             end if;
 
-        when 16#F8# =>
+        when others =>
+            Xfer_Error := Failed;
             Mode := Idle;
 
-        when others =>
-            Mode := Idle;
         end case;
 
         Msg_Index := Unsigned_8(Xfer_X);

@@ -17,6 +17,7 @@ package TWI is
         Busy,               -- TWI is busy with a current request
         Invalid,            -- Invalid request
         SLA_NAK,            -- SLA+W received a NAK
+        Bus_Error,          -- A bus error occured
         Failed              -- Failed for an unknown reason
     );
 

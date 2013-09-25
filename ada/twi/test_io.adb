@@ -106,6 +106,8 @@ package body Test_IO is
             Put_Line("Invalid");
         when TWI.SLA_NAK =>
             Put_Line("SLA_NAK");
+        when TWI.Bus_Error =>
+            Put_Line("Bus_Error");
         when TWI.Failed =>
             Put_Line("Failed");
         end case;        
