@@ -25,6 +25,7 @@ package body MCP23017 is
                         0
                 );
 
+    IOCFG :     Unsigned_8 renames IO_Buf(1);
     Wr_R :      Unsigned_8 renames IO_Buf(2);
     Wr_A :      Unsigned_8 renames IO_Buf(3);
     Wr_B :      Unsigned_8 renames IO_Buf(4);
@@ -84,8 +85,14 @@ package body MCP23017 is
     ------------------------------------------------------------------
     -- Initialize the MCP23017 for I/O with this driver
     ------------------------------------------------------------------
-    procedure Initialize(Addr : Slave_Addr; Error : out Error_Code) is
+    procedure Initialize(Addr : Slave_Addr; Error : out Error_Code; Slew : Boolean := true) is
     begin
+        if Slew then
+            IOCFG := 2#0000_0000#;      -- SDA Slew enabled
+        else
+            IOCFG := 2#0001_0000#;      -- SDA Slew disabled
+        end if;
+
         Xfer(Addr,Msg_Init'Access,Error);
     end Initialize;
 

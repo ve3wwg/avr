@@ -39,7 +39,7 @@ package MCP23017 is
 
     type Port_Type is ( Port_A, Port_B );
 
-    procedure Initialize(Addr : Slave_Addr; Error : out Error_Code);
+    procedure Initialize(Addr : Slave_Addr; Error : out Error_Code; Slew : Boolean := true);
     procedure Set_Direction(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code);
     procedure Get_Direction(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
 
