@@ -182,6 +182,16 @@ package body Test_IO is
                 MCP23017.Write(A_MCP23017,16#FF#,16#FF#,Error);
                 Put_Error(Error);
 
+            when '2' =>
+                A := A xor 16#FF#;
+                MCP23017.Write(A_MCP23017,MCP23017.Port_A,A,Error);
+                Put_Error(Error);
+
+            when '3' =>
+                B := B xor 16#FF#;
+                MCP23017.Write(A_MCP23017,MCP23017.Port_B,B,Error);
+                Put_Error(Error);
+
             when 'a' =>
                 MCP23017.Read(A_MCP23017,MCP23017.Port_A,A,Error);
                 Put_Error(Error);
