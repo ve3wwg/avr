@@ -17,6 +17,7 @@ use AVR.Strings;
 use Interfaces;
 
 with TWI;
+with MCP23017;
 
 package body Test_IO is
 
@@ -37,16 +38,6 @@ package body Test_IO is
         S(S'First) := To_Nibble_Hex(Upper);
         S(S'First+1) := To_Nibble_Hex(Lower);
     end to_hex;
-
-
-    MCP23017 :  constant TWI.Slave_Addr   := 16#20#;
-
-    IODIRA :    constant Unsigned_8 := 16#00#;
-    IODIRB :    constant Unsigned_8 := 16#01#;
-    IOCON :     constant Unsigned_8 := 16#0A#;
-
-    IOCON_CFG : constant Unsigned_8 := 2#0000_0000#;
-    IODIR_CFG : constant Unsigned_8 := 16#00#;  -- Outputs
 
     procedure CRLF is
     begin
@@ -136,58 +127,17 @@ package body Test_IO is
 
     end XStatus;
 
---    procedure Put_Error is
---        E : TWI.Error_Code := TWI.Get_Error;
---    begin
---        Put("Error: ");
---        Put(E);
---        CRLF;
---    end Put_Error;
-
-    procedure Report_Error(Error : TWI.Error_Code) is
-        use TWI;
+    procedure Put_Error(E : MCP23017.Error_Code) is
+        use MCP23017;
     begin
-
-        if Error /= No_Error then
-            Put_Line("Er!");
-            Put(Error);
-            CRLF;
+        if E = No_Error then
+            Put_Line("No_Error");
+        else
+            Put_Line("Failed.");
         end if;
-    end Report_Error;
+    end Put_Error;
 
-
-    My_Buffer :     aliased TWI.Data_Array := (
-                        IOCON,  IOCON_CFG,      -- 0..1     Set Register Config (/SEQOP)
-                        IODIRA, 16#C3#,         -- 2..3     Set I/O Config
-                        0,                      -- 4..4     Read IODIRA
-                        IODIRA, 16#AA#, 16#33#, -- 5..7     IODIRA = AA, B=33
-                        IODIRB,                 -- 8..8
-                        IODIRA, 16#12#, 16#34#, -- 9..11
-                        0 );
-
-    Xfer_0 :        aliased TWI.Xfer_Array := (
-                        0 => ( Addr => MCP23017, Xfer => TWI.Write, First => 0, Last => 1 )
-                    );
-
-    Xfer_1 :        aliased TWI.Xfer_Array := (
-                        ( Addr => MCP23017, Xfer => TWI.Write, First => 9, Last => 11 ),
-                        ( Addr => MCP23017, Xfer => TWI.Write, First => 2, Last => 2 ),
-                        ( Addr => MCP23017, Xfer => TWI.Read,  First => 4, Last => 4 )
-                    );
-
-    Xfer_2 :        aliased TWI.Xfer_Array := (
-                        ( Addr => MCP23017, Xfer => TWI.Write, First => 2, Last => 2 ),
-                        ( Addr => MCP23017, Xfer => TWI.Read,  First => 4, Last => 4 )
-                    );
-
-    Xfer_3 :        aliased TWI.Xfer_Array := (
-                        0 => ( Addr => MCP23017, Xfer => TWI.Write, First => 5, Last => 7 )
-                    );
-
-    Xfer_4 :        aliased TWI.Xfer_Array := (
-                        ( Addr => MCP23017, Xfer => TWI.Write, First => 8, Last => 8 ),
-                        ( Addr => MCP23017, Xfer => TWI.Read,  First => 4, Last => 4 )
-                    );
+    A_MCP23017 : constant := 16#20#;
 
     procedure Test is
         use AVR, AVR.Strings;
@@ -198,8 +148,9 @@ package body Test_IO is
         Init_Msg :      constant PStr := "Init..";
         Mode_Msg :      constant PStr := "Mode: ";
 
-        Error :         Error_Code;
+        Error :         MCP23017.Error_Code;
         Ch :            Character;
+        A, B :          Unsigned_8 := 0;
     begin
 
         AVR.UART.Init(AVR.UART.Baud_19200_16MHz,False);
@@ -208,6 +159,14 @@ package body Test_IO is
         CRLF;
         CRLF;
 
+        TWI.Initialize(16#01#,0);
+
+        MCP23017.Initialize(A_MCP23017,Error);
+        Put_Error(Error);
+
+        MCP23017.Set_Direction(A_MCP23017,MCP23017.DD_Outputs,MCP23017.DD_Outputs,Error);
+        Put_Error(Error);
+
         loop
             Put_Pstr(Ready);
             Ch := UART.Get;
@@ -215,46 +174,23 @@ package body Test_IO is
             CRLF;
 
             case Ch is
-            when 'i' =>
-                Put_PStr(Init_Msg);
-                CRLF;
-                TWI.Initialize(16#01#,0);
-
             when '0' =>
-                TWI.Master(Xfer_0'Access,My_Buffer'Access,Error);
-                Report_Error(Error);
-                TWI.Complete(Error);
-                Report_Error(Error);
+                MCP23017.Write(A_MCP23017,16#00#,16#00#,Error);
+                Put_Error(Error);
 
             when '1' =>
-                TWI.Master(Xfer_1'Access,My_Buffer'Access,Error);
-                Report_Error(Error);
-                TWI.Complete(Error);
-                Report_Error(Error);
+                MCP23017.Write(A_MCP23017,16#FF#,16#FF#,Error);
+                Put_Error(Error);
 
-            when '2' =>
-                TWI.Master(Xfer_2'Access,My_Buffer'Access,Error);
-                Report_Error(Error);
-                TWI.Complete(Error);
-                Report_Error(Error);
-                Put_Byte(My_Buffer(4));
+            when 'a' =>
+                MCP23017.Read(A_MCP23017,MCP23017.Port_A,A,Error);
+                Put_Error(Error);
+                Put_Byte(A);
 
-            when '3' =>
-                TWI.Master(Xfer_3'Access,My_Buffer'Access,Error);
-                Report_Error(Error);
-                TWI.Complete(Error);
-                Report_Error(Error);
-
-            when '4' =>
-                TWI.Master(Xfer_4'Access,My_Buffer'Access,Error);
-                Report_Error(Error);
-                TWI.Complete(Error);
-                Report_Error(Error);
-                Put_Byte(My_Buffer(4));
-
-            when 'v' =>
-                Put_Byte(My_Buffer(4));
-                CRLF;
+            when 'b' =>
+                MCP23017.Read(A_MCP23017,MCP23017.Port_B,B,Error);
+                Put_Error(Error);
+                Put_Byte(B);
 
             when ' ' =>
                 CRLF;
