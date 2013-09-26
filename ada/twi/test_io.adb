@@ -202,6 +202,25 @@ package body Test_IO is
                 Put_Error(Error);
                 Put_Byte(B);
 
+            when 'p' =>
+                MCP23017.Get_Polarity(A_MCP23017,A,B,Error);
+                Put_Byte(A);
+                Put_Byte(B);
+
+            when 'P' =>
+                MCP23017.Set_Polarity(A_MCP23017,A,B,Error);
+                Put_Byte(A);
+                Put_Byte(B);
+
+            when '=' =>
+                Put_Byte(A);
+                Put_Byte(B);
+
+            when 'r' =>
+                MCP23017.Read(A_MCP23017,A,B,Error);
+                Put_Byte(A);
+                Put_Byte(B);
+
             when ' ' =>
                 CRLF;
 
