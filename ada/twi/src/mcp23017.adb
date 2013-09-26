@@ -67,7 +67,7 @@ package body MCP23017 is
                 );
 
     Rd_B :      aliased TWI.Xfer_Array := (
-                    ( Addr => 0, Xfer => TWI.Write, First => 5, Last => 5 ),
+                    ( Addr => 0, Xfer => TWI.Write, First => 8, Last => 8 ),
                     ( Addr => 0, Xfer => TWI.Read,  First => 7, Last => 7 ) -- aka Prt_B
                 );
 
@@ -207,5 +207,3 @@ package body MCP23017 is
     end Read;
 
 end MCP23017;
-
-
