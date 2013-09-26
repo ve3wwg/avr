@@ -71,7 +71,7 @@ package TWI is
         By_64
     );
 
-    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz);
+    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz; General_Call : Boolean := true);
     procedure Custom_Rate(Divisor : Unsigned_8; Prescale : Prescale_Type);
 
     procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);

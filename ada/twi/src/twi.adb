@@ -189,7 +189,7 @@ package body TWI is
     ------------------------------------------------------------------
     -- API: Initialize the I2C Peripheral 
     ------------------------------------------------------------------
-    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz) is
+    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz; General_Call : Boolean := true) is
         use AVR;
     begin
 
@@ -219,8 +219,12 @@ package body TWI is
                 TWBR := 18;
         end case;
 
-        TWAR  := Unsigned_8(Addr);
-        TWAMR := Unsigned_8(Mask);
+        if General_Call then
+            TWAR  := Shift_Left(Unsigned_8(Addr),1) or 1;
+        else
+            TWAR  := Shift_Left(Unsigned_8(Addr),1);
+        end if;
+        TWAMR := Shift_Left(Unsigned_8(Mask),1);    -- 1's indicate bits to ignore
 
         Local_Addr := Addr;
         Addr_Mask  := Mask;
