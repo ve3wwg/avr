@@ -14,6 +14,10 @@ use AVR.Strings;
 
 package body TWI is
 
+    ------------------------------------------------------------------
+    -- FOR DEBUGGING ONLY
+    ------------------------------------------------------------------
+
     Statuses : Data_Array := ( 0..63 => 0 );    -- For debugging
     pragma Volatile(Statuses);
 
@@ -27,10 +31,12 @@ package body TWI is
     Msg_Index :     Unsigned_8 renames Statuses(Statuses'First+3);
     Buf_Index :     Unsigned_8 renames Statuses(Statuses'First+4);
 
---  SREG :          Unsigned_8 renames AVR.MCU.SREG;
+    ------------------------------------------------------------------
+    -- END DEBUG
+    ------------------------------------------------------------------
+
     BV_I :          Boolean renames AVR.MCU.SREG_Bits(AVR.MCU.I_Bit);
 
---  PRR :           Unsigned_8 renames AVR.MCU.PRR;
     BV_PRTWI :      Boolean renames AVR.MCU.PRR_Bits(AVR.MCU.PRTWI_Bit);
 
     DD_C5 :         Boolean renames AVR.MCU.DDRC_Bits(AVR.MCU.DDC5_Bit);
@@ -54,6 +60,10 @@ package body TWI is
     BV_TWEA :       Boolean renames AVR.MCU.TWCR_Bits(AVR.MCU.TWEA_Bit);
     BV_TWINT :      Boolean renames AVR.MCU.TWCR_Bits(AVR.MCU.TWINT_Bit);
 
+    ------------------------------------------------------------------
+    -- Module Operation Mode
+    ------------------------------------------------------------------
+
     type Operation_Mode is (
         Idle,
         Master,
@@ -61,11 +71,10 @@ package body TWI is
     );
 
     ------------------------------------------------------------------
-    -- Configuration
+    -- Idle Routine is called in blocking Completion() calls
     ------------------------------------------------------------------
 
-    Local_Addr :    Slave_Addr := 16#7F#;
-    Addr_Mask :     Slave_Addr := 0;
+    Idle_Routine :  Idle_Proc;                  -- Idle procedure
 
     ------------------------------------------------------------------
     -- I2C Messages
@@ -75,13 +84,8 @@ package body TWI is
     Buf :           Data_Array_Ptr;             -- I/O buffer
 
     Xfer_X :        Unsigned_8 := 0;            -- Current I/O Request index
-    pragma Volatile(Xfer_X);
-
     Xfer_Buf_X :    Unsigned_16 := 0;           -- Current I/O buffer index
-    pragma Volatile(Xfer_Buf_X);
-
     Xfer_Error :    Error_Code := No_Error;     -- Transfer status
-    pragma Volatile(Xfer_Error);
 
     Init :          Boolean := False;           -- True once initialized
     Stopped :       Boolean := False;           -- True when stopped
@@ -147,15 +151,15 @@ package body TWI is
     end Xmit_SLA;
 
     ------------------------------------------------------------------
-    -- Clear Debug Info
+    -- Clear Debug Info (WILL BE REMOVED LATER)
     ------------------------------------------------------------------
     procedure Clear_Info is
     begin
-        Statuses := ( 0, others => 0 );
-        SX       := SX_First;
+        Statuses  := ( 0, others => 0 );
+        SX        := SX_First;
         Msg_Index := Xfer_X;
         Buf_Index := Unsigned_8(Xfer_Buf_X);
-        Count    := 0;
+        Count     := 0;
     end Clear_Info;
 
     ------------------------------------------------------------------
@@ -200,13 +204,12 @@ package body TWI is
         BV_TWIE := False;
         BV_TWEA := False;
 
-        Clear_Info;
+        Clear_Info;             -- REMOVE ME (AFTER DEBUG)
 
         BV_PRTWI := False;
 
         DD_C5 := DD_Input;
         BV_C5 := True;          -- Enable pullup
-
         DD_C4 := DD_Input;
         BV_C4 := True;          -- Enable pullup
 
@@ -226,8 +229,6 @@ package body TWI is
         end if;
         TWAMR := Shift_Left(Unsigned_8(Mask),1);    -- 1's indicate bits to ignore
 
-        Local_Addr := Addr;
-        Addr_Mask  := Mask;
         Mode       := Idle;
 
         Buf        := null;
@@ -330,6 +331,8 @@ package body TWI is
             if not Block then
                 Error := Busy;
                 return;
+            elsif Idle_Routine /= null then
+                Idle_Routine.all;
             end if;
         end loop;
 
@@ -338,12 +341,23 @@ package body TWI is
             if not Block then
                 Error := Busy;
                 return;
+            elsif Idle_Routine /= null then
+                Idle_Routine.all;
             end if;
         end loop;
 
         Error := Xfer_Error;
 
     end Complete;
+
+    ------------------------------------------------------------------
+    -- Set Idle Procedure to be called while waiting for Master mode
+    -- I/O to complete in procedure Complete().
+    ------------------------------------------------------------------
+    procedure Set_Idle_Proc(Proc : Idle_Proc) is
+    begin
+        Idle_Routine := Proc;
+    end Set_Idle_Proc;
 
     ------------------------------------------------------------------
     -- Interrupt Service Routine Attributes
@@ -374,9 +388,9 @@ package body TWI is
         case S is
 
         when 16#00# =>  -- Bus error
-            Xfer_Error := Bus_Error;
+            Xfer_Error := Bus_Error;    -- Needs Reset
             Mode := Idle;
-            Stopped := False;   -- Don't wait for stop status to change
+            Stopped := False;           -- Don't wait for stop status to change
 
         when 16#38# =>  -- Arbitration lost in SLA+W transmission
             TWI_Start;  -- Try again
@@ -412,13 +426,13 @@ package body TWI is
 
         when 16#28# =>  -- Data byte has been transmitted and ACKed
             if Xfer_Buf_X <= Xfer(Xfer_X).Last then
-                TWDR := Buf(Xfer_Buf_X);    -- Send another byte
-                TWCR := 2#1100_0101#;       -- Transmit
+                TWDR := Buf(Xfer_Buf_X);        -- Send another byte
+                TWCR := 2#1100_0101#;           -- Transmit
                 Xfer_Buf_X := Xfer_Buf_X + 1;
             else
                 Xfer_X := Xfer_X + 1;
                 if Xfer_X <= Xfer'Last then
-                    TWI_Start;              -- Repeated start
+                    TWI_Start;                  -- Repeated start
                 else
                     TWI_Stop;
                     Stopped := true;
@@ -428,7 +442,7 @@ package body TWI is
         when 16#30# =>  -- Data byte has been transmitted and NAKed
             Xfer_X := Xfer_X + 1;
             if Xfer_X <= Xfer'Last then
-                TWI_Start;                  -- Repeated start
+                TWI_Start;                      -- Repeated start
             else
                 TWI_Stop;
                 Stopped := true;
@@ -467,13 +481,13 @@ package body TWI is
 
         end case;
 
-        Msg_Index := Unsigned_8(Xfer_X);
-        Buf_Index := Unsigned_8(Xfer_Buf_X);
+        Msg_Index := Unsigned_8(Xfer_X);        -- RM AFTER DEBUG
+        Buf_Index := Unsigned_8(Xfer_Buf_X);    -- RM AFTER DEBUG
 
     end ISR;
 
     ------------------------------------------------------------------
-    -- Debugging Access
+    -- DEBUGGING ACCESS (TO BE REMOVED IN FUTURE)
     ------------------------------------------------------------------
 
     procedure Get_Status(Stat : out Data_Array; X : out Unsigned_16) is
@@ -488,7 +502,6 @@ package body TWI is
             Stat(J) := Statuses(K);
             K := K + 1;
         end loop;
-
     end Get_Status;
 
 end TWI;

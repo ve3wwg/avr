@@ -27,6 +27,10 @@ package TWI is
 
     type Slave_Addr is new Unsigned_8 range 0..16#7F#;
 
+    ------------------------------------------------------------------
+    -- All I2C Data Transfers occur in/out of this Data_Array type
+    ------------------------------------------------------------------
+
     type Data_Array is array(Unsigned_16 range <>) of Unsigned_8;
     type Data_Array_Ptr is access all Data_Array;
 
@@ -41,7 +45,7 @@ package TWI is
     );
 
     ------------------------------------------------------------------
-    -- I2C Transaction
+    -- I2C Transaction Message
     ------------------------------------------------------------------
 
     type Xfer_Type is
@@ -56,7 +60,7 @@ package TWI is
     type Xfer_Array_Ptr is access all Xfer_Array;
 
     ------------------------------------------------------------------
-    -- API
+    -- I2C Bus Speed (assumes 16Mhz Clock)
     ------------------------------------------------------------------
 
     type I2C_Rate is (
@@ -71,13 +75,28 @@ package TWI is
         By_64
     );
 
+    ------------------------------------------------------------------
+    -- Initialization
+    ------------------------------------------------------------------
     procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz; General_Call : Boolean := true);
     procedure Custom_Rate(Divisor : Unsigned_8; Prescale : Prescale_Type);
 
+    ------------------------------------------------------------------
+    -- Master Mode I/O
+    ------------------------------------------------------------------
     procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
     procedure Complete(Error : out Error_Code; Block : Boolean := true);
 
-    -- For debugging only
+    ------------------------------------------------------------------
+    -- Idle Procedure (called during interrupt driven Master Mode I/O)
+    ------------------------------------------------------------------
+    type Idle_Proc is access procedure;
+
+    procedure Set_Idle_Proc(Proc : Idle_Proc);
+
+
+
+    -- For debugging only (will be removed in the future)
     procedure Get_Status(Stat : out Data_Array; X : out Unsigned_16);
 
 end TWI;
