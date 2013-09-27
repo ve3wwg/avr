@@ -55,6 +55,18 @@ package MCP23017 is
     procedure Read(Addr : Slave_Addr; Port : Port_Type; Data : out Nat8; Error : out Error_Code);
     procedure Read(Addr : Slave_Addr; Port : Port_Type; Bit : Bit_Number; Data : out Boolean; Error : out Error_Code);
 
+    ------------------------------------------------------------------
+    -- Set Interrupt on Change:
+    ------------------------------------------------------------------
+    -- Enable:  Each 1-bit enables interrupt participation
+    -- Value:   Each bit is compared if Control bit=1
+    -- Control: Each 1-bit says compare I/O bit with Value bit
+    --          Each 0-bit says just interrupt if changed from prior value
+    ------------------------------------------------------------------
+    procedure Set_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : Nat8; Error : out Error_Code);
+    procedure Get_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : out Nat8; Error : out Error_Code);
+
+
 end MCP23017;
 
 

@@ -14,6 +14,12 @@ package body MCP23017 is
     GPIOA :     constant := 16#12#;
     GPIOB :     constant := 16#13#;
     IPOLA :     constant := 16#02#;
+    GPINTENA :  constant := 16#04#;
+    GPINTENB :  constant := 16#05#;
+    DEFVALA :   constant := 16#06#;
+    DEFVALB :   constant := 16#07#;
+    INTCONA :   constant := 16#08#;
+    INTCONB :   constant := 16#09#;
 
     IODIR_CFG : constant Unsigned_8 := 16#00#;  -- Outputs
 
@@ -22,7 +28,10 @@ package body MCP23017 is
                         IOCON,  2#0000_0000#,   -- 0..1     Msg_Init: I/O Config
                         IODIRA, 0,      0,      -- 2..4     Write pair or single
                         GPIOA,  0,      0,      -- 5..7     Read pair or single
-                        0
+                        GPINTENA, 0,            -- 8..9     Set GPINTENA/B
+                        DEFVALA,  0,            -- 10..11   Set DEFVALA/B
+                        INTCONA,  0,            -- 12..13   Set INTCONA/B
+                    0
                 );
 
     IOCFG :     Unsigned_8 renames IO_Buf(1);
@@ -33,6 +42,14 @@ package body MCP23017 is
     Rd_R :      Unsigned_8 renames IO_Buf(5);
     Rd_A :      Unsigned_8 renames IO_Buf(6);
     Rd_B :      Unsigned_8 renames IO_Buf(7);
+
+    INTCHG_R :  Unsigned_8 renames IO_BUF(8);
+    INTEN :     Unsigned_8 renames IO_BUF(9);
+    DEFVAL_R :  Unsigned_8 renames IO_BUF(10);
+    DEFVAL :    Unsigned_8 renames IO_BUF(11);
+    INTCON_R :  Unsigned_8 renames IO_BUF(12);
+    INTCON :    Unsigned_8 renames IO_BUF(13);
+
 
     Msg_Init :  aliased TWI.Xfer_Array := (
                     0 => ( Addr => 0, Xfer => TWI.Write, First => 0, Last => 1 )
@@ -54,6 +71,21 @@ package body MCP23017 is
     Read_1 :    aliased TWI.Xfer_Array := (
                     ( Addr => 0, Xfer => TWI.Write, First => 5, Last => 5 ),
                     ( Addr => 0, Xfer => TWI.Read,  First => 6, Last => 6 )
+                );
+
+    Int_Msg :   aliased TWI.Xfer_Array := (
+                    ( Addr => 0, Xfer => TWI.Write, First => 8, Last => 9 ),
+                    ( Addr => 0, Xfer => TWI.Write, First => 10, Last => 11 ),
+                    ( Addr => 0, Xfer => TWI.Write, First => 12, Last => 13 )
+                );
+
+    Get_Int :   aliased TWI.Xfer_Array := (
+                    ( Addr => 0, Xfer => TWI.Write, First => 8,  Last => 8 ),
+                    ( Addr => 0, Xfer => TWI.Read,  First => 9,  Last => 9 ),
+                    ( Addr => 0, Xfer => TWI.Write, First => 10, Last => 10 ),
+                    ( Addr => 0, Xfer => TWI.Read,  First => 11, Last => 11 ),
+                    ( Addr => 0, Xfer => TWI.Write, First => 12, Last => 12 ),
+                    ( Addr => 0, Xfer => TWI.Read,  First => 13, Last => 13 )
                 );
 
     ------------------------------------------------------------------
@@ -239,5 +271,51 @@ package body MCP23017 is
     begin
         Get_Pair(Addr,IPOLA,A,B,Error);
     end Get_Polarity;
+
+    ------------------------------------------------------------------
+    -- Set/Get Interrupt on Change Registers
+    ------------------------------------------------------------------
+
+    procedure Set_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : Nat8; Error : out Error_Code) is
+    begin
+        case Port is
+            when Port_A =>
+                INTCHG_R := GPINTENA;
+                DEFVAL_R := DEFVALA;
+                INTCON_R := INTCONA;
+            when Port_B =>
+                INTCHG_R := GPINTENB;
+                DEFVAL_R := DEFVALB;
+                INTCON_R := INTCONB;
+        end case;
+
+        INTEN    := Enable;
+        DEFVAL   := Value;
+        INTCON   := Control;
+
+        Xfer(Addr,Int_Msg'Access,Error);
+
+    end Set_Int_Change;
+
+    procedure Get_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : out Nat8; Error : out Error_Code) is
+    begin
+        case Port is
+            when Port_A =>
+                INTCHG_R := GPINTENA;
+                DEFVAL_R := DEFVALA;
+                INTCON_R := INTCONA;
+            when Port_B =>
+                INTCHG_R := GPINTENB;
+                DEFVAL_R := DEFVALB;
+                INTCON_R := INTCONB;
+        end case;
+
+        Xfer(Addr,Get_Int'Access,Error);
+
+        Enable  := INTEN;
+        Value   := DEFVAL;
+        Control := INTCON;
+
+    end Get_Int_Change;
 
 end MCP23017;

@@ -221,8 +221,46 @@ package body Test_IO is
                 Put_Byte(A);
                 Put_Byte(B);
 
-            when ' ' =>
-                CRLF;
+            when 'I' =>
+                declare
+                    E, V, C : Nat8 := 0;
+                begin
+                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_Error(Error);
+                    Put_Byte(E);
+                    Put_Byte(V);
+                    Put_Byte(C);
+                end;
+
+            when 'J' =>
+                declare
+                    E :     Nat8 := 16#FF#;
+                    V :     Nat8 := 16#FF#;
+                    C :     Nat8 := 16#5A#;
+                begin
+                    MCP23017.Set_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_Error(Error);
+                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_Error(Error);
+                    Put_Byte(E);
+                    Put_Byte(V);
+                    Put_Byte(C);
+                end;
+
+            when 'K' =>
+                declare
+                    E :     Nat8 := 0;
+                    V :     Nat8 := 16#22#;
+                    C :     Nat8 := 0;
+                begin
+                    MCP23017.Set_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_Error(Error);
+                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_Error(Error);
+                    Put_Byte(E);
+                    Put_Byte(V);
+                    Put_Byte(C);
+                end;
 
             when others =>
                 XStatus;
