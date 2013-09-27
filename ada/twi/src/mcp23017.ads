@@ -51,10 +51,16 @@ package MCP23017 is
     procedure Get_Polarity(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
     procedure Set_Polarity(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code);
 
+    -- Get/Set Latches:
+    procedure Get_Latch(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
+    procedure Set_Latch(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code);
+
+    -- Write GPIO
     procedure Write(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code);
     procedure Write(Addr : Slave_Addr; Port : Port_Type; Data : Nat8; Error : out Error_Code);
     procedure Write(Addr : Slave_Addr; Port : Port_Type; Bit : Bit_Number; Data : Boolean; Error : out Error_Code);
 
+    -- Read GPIO
     procedure Read(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
     procedure Read(Addr : Slave_Addr; Port : Port_Type; Data : out Nat8; Error : out Error_Code);
     procedure Read(Addr : Slave_Addr; Port : Port_Type; Bit : Bit_Number; Data : out Boolean; Error : out Error_Code);
@@ -69,6 +75,9 @@ package MCP23017 is
     ------------------------------------------------------------------
     procedure Set_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : Nat8; Error : out Error_Code);
     procedure Get_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : out Nat8; Error : out Error_Code);
+
+    procedure Get_Int_Flags(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
+    procedure Get_Int_Capture(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
 
     ------------------------------------------------------------------
     -- Configure/Query Interrupt Facility

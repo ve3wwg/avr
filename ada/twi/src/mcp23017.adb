@@ -8,11 +8,8 @@
 
 package body MCP23017 is
 
-    IOCON :     constant := 16#0A#;
     IODIRA :    constant := 16#00#;
     IODIRB :    constant := 16#01#;
-    GPIOA :     constant := 16#12#;
-    GPIOB :     constant := 16#13#;
     IPOLA :     constant := 16#02#;
     GPINTENA :  constant := 16#04#;
     GPINTENB :  constant := 16#05#;
@@ -20,8 +17,17 @@ package body MCP23017 is
     DEFVALB :   constant := 16#07#;
     INTCONA :   constant := 16#08#;
     INTCONB :   constant := 16#09#;
+    IOCON :     constant := 16#0A#;
     GPPUA :     constant := 16#0C#;
     GPPUB :     constant := 16#0D#;
+    INTFA :     constant := 16#0E#;
+    INTFB :     constant := 16#0F#;
+    INTCAPA :   constant := 16#10#;
+    INTCAPB :   constant := 16#11#;
+    GPIOA :     constant := 16#12#;
+    GPIOB :     constant := 16#13#;
+    OLATA :     constant := 16#14#;
+    OLATB :     constant := 16#15#;
 
     IODIR_CFG : constant Unsigned_8 := 16#00#;  -- Outputs
 
@@ -398,5 +404,37 @@ package body MCP23017 is
     begin
         Get_Pair(Addr,GPPUA,A,B,Error);
     end Get_Pullup;
+
+    ------------------------------------------------------------------
+    -- Get Interrupt Flags
+    ------------------------------------------------------------------
+    procedure Get_Int_Flags(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code) is
+    begin
+        Get_Pair(Addr,INTFA,A,B,Error);
+    end Get_Int_Flags;
+
+    ------------------------------------------------------------------
+    -- Get Captured Values
+    ------------------------------------------------------------------
+    procedure Get_Int_Capture(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code) is
+    begin
+        Get_Pair(Addr,INTCAPA,A,B,Error);
+    end Get_Int_Capture;
+
+    ------------------------------------------------------------------
+    -- Set Output Latch (even if configured as Input)
+    ------------------------------------------------------------------
+    procedure Set_Latch(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code) is
+    begin
+        Put_Pair(Addr,OLATA,A,B,Error);
+    end Set_Latch;
+
+    ------------------------------------------------------------------
+    -- Read the Output Latch
+    ------------------------------------------------------------------
+    procedure Get_Latch(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code) is
+    begin
+        Get_Pair(Addr,OLATA,A,B,Error);
+    end Get_Latch;
 
 end MCP23017;
