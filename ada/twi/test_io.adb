@@ -88,50 +88,60 @@ package body Test_IO is
         CRLF;
     end Put_Byte;
 
-    procedure Put(Error : TWI.Error_Code) is
+    procedure Put_Bool(F : Boolean) is
     begin
-        case Error is
-        when TWI.No_Error =>
-            Put_Line("No_Error.");
-        when TWI.Busy =>
-            Put_Line("Busy");
-        when TWI.Invalid =>
-            Put_Line("Invalid");
-        when TWI.SLA_NAK =>
-            Put_Line("SLA_NAK");
-        when TWI.Bus_Error =>
-            Put_Line("Bus_Error");
-        when TWI.Failed =>
-            Put_Line("Failed");
-        end case;        
-    end Put;
+        if F then
+            Put_Line("T");
+        else
+            Put_Line("F");
+        end if;
+    end Put_Bool;
 
-    procedure XStatus is
-        S : AVR_String(1..2);
-        Z : TWI.Data_Array(0..63);
-        SX : Unsigned_16;
-    begin
+--    procedure Put(Error : TWI.Error_Code) is
+--    begin
+--        case Error is
+--        when TWI.No_Error =>
+--            Put_Line("No_Error.");
+--        when TWI.Busy =>
+--            Put_Line("Busy");
+--        when TWI.Invalid =>
+--            Put_Line("Invalid");
+--        when TWI.SLA_NAK =>
+--            Put_Line("SLA_NAK");
+--        when TWI.Bus_Error =>
+--            Put_Line("Bus_Error");
+--        when TWI.Failed =>
+--            Put_Line("Failed");
+--        end case;        
+--    end Put;
 
-        TWI.Get_Status(Z,SX);
-
-        for X in Z'Range loop
-            exit when X > SX;
-
-            To_Hex(Z(X),S);
-            Put(S);
-            Put(' ');
-        end loop;
-
-        Put(';');
-        CRLF;
-
-    end XStatus;
+--    procedure XStatus is
+--        S : AVR_String(1..2);
+--        Z : TWI.Data_Array(0..63);
+--        SX : Unsigned_16;
+--    begin
+--
+--        TWI.Get_Status(Z,SX);
+--
+--        for X in Z'Range loop
+--            exit when X > SX;
+--
+--            To_Hex(Z(X),S);
+--            Put(S);
+--            Put(' ');
+--        end loop;
+--
+--        Put(';');
+--        CRLF;
+--
+--    end XStatus;
 
     procedure Put_Error(E : MCP23017.Error_Code) is
         use MCP23017;
     begin
         if E = No_Error then
-            Put_Line("No_Error");
+--            Put_Line("No_Error");
+            null;
         else
             Put_Line("Failed.");
         end if;
@@ -143,19 +153,19 @@ package body Test_IO is
         use AVR, AVR.Strings;
         use TWI;
 
-        Test_Begins :   constant PStr := "Test Begins: ";
+        Test_Begins :   constant PStr := "Test Begins:";
         Ready :         constant PStr := "Ready: ";
-        Init_Msg :      constant PStr := "Init..";
-        Mode_Msg :      constant PStr := "Mode: ";
+        MOP :           constant PStr := "MOP: ";
 
         Error :         MCP23017.Error_Code;
         Ch :            Character;
         A, B :          Unsigned_8 := 0;
+        F :             Boolean;
     begin
 
         AVR.UART.Init(AVR.UART.Baud_19200_16MHz,False);
 
-        Put_Pstr(Test_Begins);
+        Put_Pstr("Test Begins:");
         CRLF;
         CRLF;
 
@@ -221,49 +231,95 @@ package body Test_IO is
                 Put_Byte(A);
                 Put_Byte(B);
 
-            when 'I' =>
+--            when 'I' =>
+--                declare
+--                    E, V, C : Nat8 := 0;
+--                begin
+--                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+--                    Put_Error(Error);
+--                    Put_Byte(E);
+--                    Put_Byte(V);
+--                    Put_Byte(C);
+--                end;
+--
+--            when 'J' =>
+--                declare
+--                    E :     Nat8 := 16#FF#;
+--                    V :     Nat8 := 16#FF#;
+--                    C :     Nat8 := 16#5A#;
+--                begin
+--                    MCP23017.Set_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+--                    Put_Error(Error);
+--                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+--                    Put_Error(Error);
+--                    Put_Byte(E);
+--                    Put_Byte(V);
+--                    Put_Byte(C);
+--                end;
+--
+--            when 'K' =>
+--                declare
+--                    E :     Nat8 := 0;
+--                    V :     Nat8 := 16#22#;
+--                    C :     Nat8 := 0;
+--                begin
+--                    MCP23017.Set_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+--                    Put_Error(Error);
+--                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+--                    Put_Error(Error);
+--                    Put_Byte(E);
+--                    Put_Byte(V);
+--                    Put_Byte(C);
+--                end;
+
+            when 'L' =>
                 declare
-                    E, V, C : Nat8 := 0;
+                    use MCP23017;
                 begin
-                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_PStr(MOP);
+                    CRLF;
+                    Get_Mirror(A_MCP23017,F,Error);
                     Put_Error(Error);
-                    Put_Byte(E);
-                    Put_Byte(V);
-                    Put_Byte(C);
+                    Put_Bool(F);
+                    Get_Open_Drain(A_MCP23017,F,Error);
+                    Put_Error(Error);
+                    Put_Bool(F);
+                    Get_Int_Polarity(A_MCP23017,F,Error);
+                    Put_Error(Error);
+                    Put_Bool(F);
                 end;
 
-            when 'J' =>
+            when 'M' =>
                 declare
-                    E :     Nat8 := 16#FF#;
-                    V :     Nat8 := 16#FF#;
-                    C :     Nat8 := 16#5A#;
+                    use MCP23017;
                 begin
-                    MCP23017.Set_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_PStr(MOP);
+                    CRLF;
+                    Set_Mirror(A_MCP23017,true,Error);
                     Put_Error(Error);
-                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Set_Open_Drain(A_MCP23017,true,Error);
                     Put_Error(Error);
-                    Put_Byte(E);
-                    Put_Byte(V);
-                    Put_Byte(C);
+                    Set_Int_Polarity(A_MCP23017,true,Error);
+                    Put_Error(Error);
                 end;
 
-            when 'K' =>
+            when 'N' =>
                 declare
-                    E :     Nat8 := 0;
-                    V :     Nat8 := 16#22#;
-                    C :     Nat8 := 0;
+                    use MCP23017;
                 begin
-                    MCP23017.Set_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Put_PStr(MOP);
+                    CRLF;
+                    Set_Mirror(A_MCP23017,false,Error);
                     Put_Error(Error);
-                    MCP23017.Get_Int_Change(A_MCP23017,MCP23017.Port_A,E,V,C,Error);
+                    Set_Open_Drain(A_MCP23017,false,Error);
                     Put_Error(Error);
-                    Put_Byte(E);
-                    Put_Byte(V);
-                    Put_Byte(C);
+                    Set_Int_Polarity(A_MCP23017,false,Error);
+                    Put_Error(Error);
                 end;
 
             when others =>
-                XStatus;
+--                XStatus;
+                null;
             end case;
         end loop;
 

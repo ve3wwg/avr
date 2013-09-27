@@ -66,7 +66,17 @@ package MCP23017 is
     procedure Set_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : Nat8; Error : out Error_Code);
     procedure Get_Int_Change(Addr : Slave_Addr; Port : Port_Type; Enable, Value, Control : out Nat8; Error : out Error_Code);
 
+    ------------------------------------------------------------------
+    -- Configure/Query Interrupt Facility
+    ------------------------------------------------------------------
+    procedure Set_Mirror(Addr : Slave_Addr; Mirror : Boolean; Error : out Error_Code);
+    procedure Get_Mirror(Addr : Slave_Addr; Mirror : out Boolean; Error : out Error_Code);
+    procedure Set_Open_Drain(Addr : Slave_Addr; Open_Drain : Boolean; Error : out Error_Code);
+    procedure Get_Open_Drain(Addr : Slave_Addr; Open_Drain : out Boolean; Error : out Error_Code);
+    procedure Set_Int_Polarity(Addr : Slave_Addr; Active_High : Boolean; Error : out Error_Code);
+    procedure Get_Int_Polarity(Addr : Slave_Addr; Active_High : out Boolean; Error : out Error_Code);
 
+    
 end MCP23017;
 
 

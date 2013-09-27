@@ -318,4 +318,70 @@ package body MCP23017 is
 
     end Get_Int_Change;
 
+    ------------------------------------------------------------------
+    -- Configure/Query Interrupt Facility
+    ------------------------------------------------------------------
+    procedure Set_Mirror(Addr : Slave_Addr; Mirror : Boolean; Error : out Error_Code) is
+        C : Nat8 := 0;
+    begin
+        Get_Single(Addr,IOCON,C,Error);
+        if Error = No_Error then
+            if Mirror then
+                C := C or  2#0100_0000#;
+            else
+                C := C and 2#1011_1111#;
+            end if;
+            Put_Single(Addr,IOCON,C,Error);
+        end if;
+    end Set_Mirror;
+    
+    procedure Get_Mirror(Addr : Slave_Addr; Mirror : out Boolean; Error : out Error_Code) is
+        C : Nat8 := 0;
+    begin
+        Get_Single(Addr,IOCON,C,Error);
+        Mirror := (C and 2#0100_0000#) /= 0;
+    end Get_Mirror;
+
+    procedure Set_Open_Drain(Addr : Slave_Addr; Open_Drain : Boolean; Error : out Error_Code) is
+        C : Nat8 := 0;
+    begin
+        Get_Single(Addr,IOCON,C,Error);
+        if Error = No_Error then
+            if Open_Drain then
+                C := C or  2#0000_0100#;
+            else
+                C := C and 2#1111_1011#;
+            end if;
+            Put_Single(Addr,IOCON,C,Error);
+        end if;
+    end Set_Open_Drain;
+
+    procedure Get_Open_Drain(Addr : Slave_Addr; Open_Drain : out Boolean; Error : out Error_Code) is
+        C : Nat8 := 0;
+    begin
+        Get_Single(Addr,IOCON,C,Error);
+        Open_Drain := (C and 2#0000_0100#) /= 0;
+    end Get_Open_Drain;
+    
+    procedure Set_Int_Polarity(Addr : Slave_Addr; Active_High : Boolean; Error : out Error_Code) is
+        C : Nat8 := 0;
+    begin
+        Get_Single(Addr,IOCON,C,Error);
+        if Error = No_Error then
+            if Active_High then
+                C := C or  2#0000_0010#;
+            else
+                C := C and 2#1111_1101#;
+            end if;
+            Put_Single(Addr,IOCON,C,Error);
+        end if;
+    end Set_Int_Polarity;
+    
+    procedure Get_Int_Polarity(Addr : Slave_Addr; Active_High : out Boolean; Error : out Error_Code) is
+        C : Nat8 := 0;
+    begin
+        Get_Single(Addr,IOCON,C,Error);
+        Active_High := (C and 2#0000_0010#) /= 0;
+    end Get_Int_Polarity;
+
 end MCP23017;
