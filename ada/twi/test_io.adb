@@ -272,49 +272,83 @@ package body Test_IO is
 --                    Put_Byte(C);
 --                end;
 
-            when 'L' =>
+--            when 'L' =>
+--                declare
+--                    use MCP23017;
+--                begin
+--                    Put_PStr(MOP);
+--                    CRLF;
+--                    Get_Mirror(A_MCP23017,F,Error);
+--                    Put_Error(Error);
+--                    Put_Bool(F);
+--                    Get_Open_Drain(A_MCP23017,F,Error);
+--                    Put_Error(Error);
+--                    Put_Bool(F);
+--                    Get_Int_Polarity(A_MCP23017,F,Error);
+--                    Put_Error(Error);
+--                    Put_Bool(F);
+--                end;
+--
+--            when 'M' =>
+--                declare
+--                    use MCP23017;
+--                begin
+--                    Put_PStr(MOP);
+--                    CRLF;
+--                    Set_Mirror(A_MCP23017,true,Error);
+--                    Put_Error(Error);
+--                    Set_Open_Drain(A_MCP23017,true,Error);
+--                    Put_Error(Error);
+--                    Set_Int_Polarity(A_MCP23017,true,Error);
+--                    Put_Error(Error);
+--                end;
+--
+--            when 'N' =>
+--                declare
+--                    use MCP23017;
+--                begin
+--                    Put_PStr(MOP);
+--                    CRLF;
+--                    Set_Mirror(A_MCP23017,false,Error);
+--                    Put_Error(Error);
+--                    Set_Open_Drain(A_MCP23017,false,Error);
+--                    Put_Error(Error);
+--                    Set_Int_Polarity(A_MCP23017,false,Error);
+--                    Put_Error(Error);
+--                end;
+
+            when 'T' =>
                 declare
                     use MCP23017;
                 begin
-                    Put_PStr(MOP);
-                    CRLF;
-                    Get_Mirror(A_MCP23017,F,Error);
+                    Get_Pullup(A_MCP23017,A,B,Error);
                     Put_Error(Error);
-                    Put_Bool(F);
-                    Get_Open_Drain(A_MCP23017,F,Error);
-                    Put_Error(Error);
-                    Put_Bool(F);
-                    Get_Int_Polarity(A_MCP23017,F,Error);
-                    Put_Error(Error);
-                    Put_Bool(F);
+                    Put_Byte(A);
+                    Put_Byte(B);
                 end;
 
-            when 'M' =>
+            when 'U' =>
                 declare
                     use MCP23017;
                 begin
-                    Put_PStr(MOP);
-                    CRLF;
-                    Set_Mirror(A_MCP23017,true,Error);
+                    Set_Pullup(A_MCP23017,16#11#,16#22#,Error);
                     Put_Error(Error);
-                    Set_Open_Drain(A_MCP23017,true,Error);
+                    Get_Pullup(A_MCP23017,A,B,Error);
                     Put_Error(Error);
-                    Set_Int_Polarity(A_MCP23017,true,Error);
-                    Put_Error(Error);
+                    Put_Byte(A);
+                    Put_Byte(B);
                 end;
 
-            when 'N' =>
+            when 'V' =>
                 declare
                     use MCP23017;
                 begin
-                    Put_PStr(MOP);
-                    CRLF;
-                    Set_Mirror(A_MCP23017,false,Error);
+                    Set_Pullup(A_MCP23017,16#33#,16#44#,Error);
                     Put_Error(Error);
-                    Set_Open_Drain(A_MCP23017,false,Error);
+                    Get_Pullup(A_MCP23017,A,B,Error);
                     Put_Error(Error);
-                    Set_Int_Polarity(A_MCP23017,false,Error);
-                    Put_Error(Error);
+                    Put_Byte(A);
+                    Put_Byte(B);
                 end;
 
             when others =>

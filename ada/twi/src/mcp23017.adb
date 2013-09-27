@@ -20,6 +20,8 @@ package body MCP23017 is
     DEFVALB :   constant := 16#07#;
     INTCONA :   constant := 16#08#;
     INTCONB :   constant := 16#09#;
+    GPPUA :     constant := 16#0C#;
+    GPPUB :     constant := 16#0D#;
 
     IODIR_CFG : constant Unsigned_8 := 16#00#;  -- Outputs
 
@@ -383,5 +385,18 @@ package body MCP23017 is
         Get_Single(Addr,IOCON,C,Error);
         Active_High := (C and 2#0000_0010#) /= 0;
     end Get_Int_Polarity;
+
+    ------------------------------------------------------------------
+    -- Get/Set Pullup resistor settings
+    ------------------------------------------------------------------
+    procedure Set_Pullup(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code) is
+    begin
+        Put_Pair(Addr,GPPUA,A,B,Error);
+    end Set_Pullup;
+
+    procedure Get_Pullup(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code) is
+    begin
+        Get_Pair(Addr,GPPUA,A,B,Error);
+    end Get_Pullup;
 
 end MCP23017;

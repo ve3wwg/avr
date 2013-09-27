@@ -43,6 +43,10 @@ package MCP23017 is
     procedure Set_Direction(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code);
     procedure Get_Direction(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
 
+    -- Get/Set Pullup resistor settings
+    procedure Set_Pullup(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code);
+    procedure Get_Pullup(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
+
     -- Get/Set Input polarity
     procedure Get_Polarity(Addr : Slave_Addr; A, B : out Nat8; Error : out Error_Code);
     procedure Set_Polarity(Addr : Slave_Addr; A, B : Nat8; Error : out Error_Code);
@@ -78,5 +82,3 @@ package MCP23017 is
 
     
 end MCP23017;
-
-
