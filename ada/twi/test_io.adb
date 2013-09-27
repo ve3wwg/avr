@@ -149,6 +149,13 @@ package body Test_IO is
 
     A_MCP23017 : constant := 16#20#;
 
+    Count :             Unsigned_8 := 0;
+
+    procedure My_Idle is
+    begin
+        Count := Count + 1;
+    end My_Idle;
+
     procedure Test is
         use AVR, AVR.Strings;
         use TWI;
@@ -169,6 +176,7 @@ package body Test_IO is
         CRLF;
         CRLF;
 
+        TWI.Set_Idle_Proc(My_Idle'Access);
         TWI.Initialize(16#01#,0);
 
         MCP23017.Initialize(A_MCP23017,Error);
@@ -350,6 +358,9 @@ package body Test_IO is
                     Put_Byte(A);
                     Put_Byte(B);
                 end;
+
+            when 'W' =>
+                Put_Byte(Count);
 
             when others =>
 --                XStatus;
