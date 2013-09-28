@@ -88,6 +88,18 @@ package TWI is
     procedure Complete(Error : out Error_Code; Block : Boolean := true);
 
     ------------------------------------------------------------------
+    -- Slave Mode I/O
+    ------------------------------------------------------------------
+    
+    type Read_Proc is access
+        procedure(Count : Natural; Byte : out Unsigned_8; Ack : in out Boolean);
+    type Write_Proc is access
+        procedure(Count : Natural; Gen_Call : Boolean; Byte : Unsigned_8; Ack : in out Boolean);
+
+    procedure Slave(Read : Read_Proc; Write : Write_Proc);
+    procedure Exit_Slave;
+
+    ------------------------------------------------------------------
     -- Idle Procedure (called during interrupt driven Master Mode I/O)
     ------------------------------------------------------------------
     type Idle_Proc is access procedure;
