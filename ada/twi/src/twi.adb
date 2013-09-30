@@ -372,33 +372,39 @@ package body TWI is
         Idle_Routine := Proc;
     end Set_Idle_Proc;
 
---  type Read_Proc is access
---      procedure(Count : Natural; Gen_Call : Boolean; Byte : out Unsigned_8; Ack : out Boolean);
---  type Write_Proc is access
---      procedure(Count : Natural; Gen_Call : Boolean; Byte : Unsigned_8; Ack : out Boolean);
---  type EOT_Proc is access
---      procedure(Count : Natural; Read : Boolean);
-
     ------------------------------------------------------------------
-    -- Operate in Slave Mode until Exit_Slave is called
+    -- Configure Callbacks for Slave I/O
     ------------------------------------------------------------------
-
-    LED : Boolean renames AVR.MCU.PortB_Bits(5);
-    Toggle : Boolean := false;
-
-    procedure Slave(Recv : Receiving_Proc; Xmit : Transmitting_Proc; EOT : EOT_Proc) is
+    procedure Allow_Slave(Recv : Receiving_Proc; Xmit : Transmitting_Proc; EOT : EOT_Proc) is
     begin
-
-        AVR.MCU.DDRB_Bits := (others => AVR.DD_Output); 
-        LED := true;
-
-        if not Init or Mode /= Idle then
-            return;
-        end if;
 
         Receiving_Routine    := Recv;
         Transmitting_Routine := Xmit;
         EOT_Routine          := EOT;
+
+    end Allow_Slave;
+
+    ------------------------------------------------------------------
+    -- Disable Slave Callbacks
+    ------------------------------------------------------------------
+    procedure Disable_Slave is
+    begin
+
+        Receiving_Routine    := null;
+        Transmitting_Routine := null;
+        EOT_Routine          := null;
+
+    end Disable_Slave;
+
+    ------------------------------------------------------------------
+    -- Operate in Slave Mode until Exit_Slave is called
+    ------------------------------------------------------------------
+    procedure Slave is
+    begin
+
+        if not Init or Mode /= Idle then
+            return;
+        end if;
 
         case Status is
         when 16#F8# =>
@@ -426,7 +432,6 @@ package body TWI is
     ------------------------------------------------------------------
     -- Request an exit from the Slave monitor loop
     ------------------------------------------------------------------
-
     procedure Exit_Slave is
     begin
         Exit_Requested := true;
@@ -452,9 +457,6 @@ package body TWI is
     begin
 
         Count := Count + 1;
-
-        Toggle := Toggle xor true;      -- DELETE ME
-        LED    := Toggle;               -- DELETE ME
 
         if SX <= Statuses'Last then
             Statuses(SX) := S;

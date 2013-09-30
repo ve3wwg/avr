@@ -82,12 +82,6 @@ package TWI is
     procedure Custom_Rate(Divisor : Unsigned_8; Prescale : Prescale_Type);
 
     ------------------------------------------------------------------
-    -- Master Mode I/O
-    ------------------------------------------------------------------
-    procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
-    procedure Complete(Error : out Error_Code; Block : Boolean := true);
-
-    ------------------------------------------------------------------
     -- Slave Mode I/O
     ------------------------------------------------------------------
     
@@ -98,8 +92,16 @@ package TWI is
     type EOT_Proc is access
         procedure(Count : Natural; Receiving : Boolean; Exit_Req : in out Boolean);
 
-    procedure Slave(Recv : Receiving_Proc; Xmit : Transmitting_Proc; EOT : EOT_Proc);
+    procedure Allow_Slave(Recv : Receiving_Proc; Xmit : Transmitting_Proc; EOT : EOT_Proc);
+    procedure Slave;
     procedure Exit_Slave;
+    procedure Disable_Slave;
+
+    ------------------------------------------------------------------
+    -- Master Mode I/O
+    ------------------------------------------------------------------
+    procedure Master(Xfer_Msg : Xfer_Array_Ptr; Buffer : Data_Array_Ptr; Error : out Error_Code);
+    procedure Complete(Error : out Error_Code; Block : Boolean := true);
 
     ------------------------------------------------------------------
     -- Idle Procedure (called during interrupt driven Master Mode I/O)

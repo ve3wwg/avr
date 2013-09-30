@@ -194,8 +194,11 @@ package body Test_IO is
         TWI.Initialize(16#40#,0);
 
         Put_Line("Starting slave mode..");
-        TWI.Slave(My_Receiver'Access,My_Transmitter'Access,My_EOT'Access);
+
+        TWI.Allow_Slave(My_Receiver'Access,My_Transmitter'Access,My_EOT'Access);
+        TWI.Slave;
         XStatus;
+        TWI.Disable_Slave;
 
         loop
             null;
