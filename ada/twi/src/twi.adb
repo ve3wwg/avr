@@ -96,6 +96,8 @@ package body TWI is
     Mode :          Operation_Mode := Idle;
     pragma Volatile(Mode);
 
+    Listening :     Boolean := false;           -- True if Slave listening in Master mode
+
     ------------------------------------------------------------------
     -- Slave Mode Status
     ------------------------------------------------------------------
@@ -118,9 +120,13 @@ package body TWI is
     -- Internal: Start a I2C Transmission
     ------------------------------------------------------------------
     procedure TWI_Start is
-        Start : constant Unsigned_8 := 2#1110_0101#;
+        Start : constant Unsigned_8 := 2#1010_0101#;
     begin
-        TWCR := Start;
+        if Listening then
+            TWCR := Start or 2#0100_0000#;      -- Or in TWEA bit
+        else
+            TWCR := Start;
+        end if;
     end TWI_Start;
 
     ------------------------------------------------------------------
@@ -130,7 +136,11 @@ package body TWI is
         Stop : constant Unsigned_8 := 2#1101_0101#;
     begin
         Mode := Idle;
-        TWCR := Stop;
+        if Listening then
+            TWCR := Stop or 2#0100_0000#;       -- Or in TWEA bit
+        else
+            TWCR := Stop;
+        end if;
     end TWI_Stop;
 
     ------------------------------------------------------------------
@@ -296,6 +306,8 @@ package body TWI is
             Error := Invalid;
             return;
         end if;
+
+        Listening := Receiving_Routine /= null or else Transmitting_Routine /= null;
 
         Xfer    := Xfer_Msg;
         Buf     := Buffer;
