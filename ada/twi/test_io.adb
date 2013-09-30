@@ -143,25 +143,22 @@ package body Test_IO is
     end My_Idle;
 
     Do_Exit : Boolean := false;
-    My_Reg :  Unsigned_16     := 0;
-    My_Data : TWI.Data_Array := ( 0, 1, 2, 3, 4 );
+    My_Data : TWI.Data_Array := ( 10, 11, 12, 13 );
+    My_Reg :  Unsigned_16    := My_Data'First;
 
-    procedure My_Read(Count : Natural; Byte : out Unsigned_8; Ack : in out Boolean) is
+    procedure My_Transmitter(Count : Natural; Byte : out Unsigned_8; Ack : in out Boolean) is
     begin
-        Put('R');
 
         if My_Reg > My_Data'Last then
             My_Reg := My_Data'First;
         end if;
-
         Byte := My_Data(My_Reg);
         My_Reg := My_Reg + 1;
 
-    end My_Read;
+    end My_Transmitter;
 
-    procedure My_Write(Count : Natural; Gen_Call : Boolean; Byte : Unsigned_8; Ack : in out Boolean) is
+    procedure My_Receiver(Count : Natural; Gen_Call : Boolean; Byte : Unsigned_8; Ack : in out Boolean) is
     begin
-        Put('W');
 
         if Count = 0 then
             My_Reg := Unsigned_16(Byte);
@@ -172,7 +169,13 @@ package body Test_IO is
                 My_Reg := My_Data'First;
             end if;
         end if;
-    end My_Write;
+
+    end My_Receiver;
+
+    procedure My_EOT(Count : Natural; Receiving : Boolean; Exit_Req : in out Boolean) is
+    begin
+        null;
+    end My_EOT;
 
     procedure Test is
         use AVR, AVR.Strings;
@@ -191,9 +194,7 @@ package body Test_IO is
         TWI.Initialize(16#40#,0);
 
         Put_Line("Starting slave mode..");
-        TWI.Slave(My_Read'Access,My_Write'Access);
-
-        Put_Line("Exited slave mode.");
+        TWI.Slave(My_Receiver'Access,My_Transmitter'Access,My_EOT'Access);
         XStatus;
 
         loop

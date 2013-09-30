@@ -91,12 +91,14 @@ package TWI is
     -- Slave Mode I/O
     ------------------------------------------------------------------
     
-    type Read_Proc is access
-        procedure(Count : Natural; Byte : out Unsigned_8; Ack : in out Boolean);
-    type Write_Proc is access
+    type Receiving_Proc is access
         procedure(Count : Natural; Gen_Call : Boolean; Byte : Unsigned_8; Ack : in out Boolean);
+    type Transmitting_Proc is access
+        procedure(Count : Natural; Byte : out Unsigned_8; Ack : in out Boolean);
+    type EOT_Proc is access
+        procedure(Count : Natural; Receiving : Boolean; Exit_Req : in out Boolean);
 
-    procedure Slave(Read : Read_Proc; Write : Write_Proc);
+    procedure Slave(Recv : Receiving_Proc; Xmit : Transmitting_Proc; EOT : EOT_Proc);
     procedure Exit_Slave;
 
     ------------------------------------------------------------------
