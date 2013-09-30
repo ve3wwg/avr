@@ -14,27 +14,6 @@ use AVR.Strings;
 
 package body TWI is
 
-    ------------------------------------------------------------------
-    -- FOR DEBUGGING ONLY
-    ------------------------------------------------------------------
-
-    Statuses : Data_Array := ( 0..63 => 0 );    -- For debugging
-    pragma Volatile(Statuses);
-
-    SX_First :  Unsigned_16 := Statuses'First + 5;
-    SX :        Unsigned_16 := SX_First;
-    pragma Volatile(SX);
-
-    Count :         Unsigned_8 renames Statuses(Statuses'First);
-    Report_TWCR :   Unsigned_8 renames Statuses(Statuses'First+1);
-    Report_Status : Unsigned_8 renames Statuses(Statuses'First+2);
-    Msg_Index :     Unsigned_8 renames Statuses(Statuses'First+3);
-    Buf_Index :     Unsigned_8 renames Statuses(Statuses'First+4);
-
-    ------------------------------------------------------------------
-    -- END DEBUG
-    ------------------------------------------------------------------
-
     BV_I :          Boolean renames AVR.MCU.SREG_Bits(AVR.MCU.I_Bit);
 
     BV_PRTWI :      Boolean renames AVR.MCU.PRR_Bits(AVR.MCU.PRTWI_Bit);
@@ -105,8 +84,12 @@ package body TWI is
     Slave_Ack :     Boolean;                    -- True if we returned Ack
     Gen_Call :      Boolean;                    -- True if this is a general call
     Slave_Count :   Natural;                    -- Byte counter
+
     Data_Byte :     Unsigned_8;                 -- Read/Written byte
+    pragma Volatile(Data_Byte);
+
     Exit_Requested: Boolean;                    -- True when we should exit slave mode
+    pragma Volatile(Exit_Requested);
 
     ------------------------------------------------------------------
     -- Internal: Return the Relevant TWSR bits
@@ -174,18 +157,6 @@ package body TWI is
     end Xmit_SLA;
 
     ------------------------------------------------------------------
-    -- Clear Debug Info (WILL BE REMOVED LATER)
-    ------------------------------------------------------------------
-    procedure Clear_Info is
-    begin
-        Statuses  := ( 0, others => 0 );
-        SX        := SX_First;
-        Msg_Index := Xfer_X;
-        Buf_Index := Unsigned_8(Xfer_Buf_X);
-        Count     := 0;
-    end Clear_Info;
-
-    ------------------------------------------------------------------
     -- Internal: Delay n millisconds
     ------------------------------------------------------------------
     procedure Delay_MS(MS : Natural) is
@@ -224,11 +195,8 @@ package body TWI is
             Reset;              -- Reset the hardware, if necessary
         end if;
 
-        BV_TWIE := False;
-        BV_TWEA := False;
-
-        Clear_Info;             -- REMOVE ME (AFTER DEBUG)
-
+        BV_TWIE := False;       -- First disable TWI peripheral
+        BV_TWEA := False;       -- Disable EA
         BV_PRTWI := False;
 
         DD_C5 := DD_Input;
@@ -299,8 +267,6 @@ package body TWI is
             Error := Busy;
             return;
         end if;
-
-        Clear_Info;
 
         if Xfer_Msg = null or else Buffer = null then
             Error := Invalid;
@@ -467,13 +433,6 @@ package body TWI is
     procedure ISR is
         S : Unsigned_8 := Status;
     begin
-
-        Count := Count + 1;
-
-        if SX <= Statuses'Last then
-            Statuses(SX) := S;
-            SX := SX + 1;
-        end if;
 
         case S is
 
@@ -674,27 +633,6 @@ package body TWI is
 
         end case;
 
-        Msg_Index := Unsigned_8(Xfer_X);        -- RM AFTER DEBUG
-        Buf_Index := Unsigned_8(Xfer_Buf_X);    -- RM AFTER DEBUG
-
     end ISR;
-
-    ------------------------------------------------------------------
-    -- DEBUGGING ACCESS (TO BE REMOVED IN FUTURE)
-    ------------------------------------------------------------------
-
-    procedure Get_Status(Stat : out Data_Array; X : out Unsigned_16) is
-        K : Unsigned_16 := Statuses'First;
-    begin
-        X             := SX;
-        Report_TWCR   := TWCR;
-        Report_Status := Status;
-
-        for J in Stat'Range loop
-            exit when K > Statuses'Last;
-            Stat(J) := Statuses(K);
-            K := K + 1;
-        end loop;
-    end Get_Status;
 
 end TWI;

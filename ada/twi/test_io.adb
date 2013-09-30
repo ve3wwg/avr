@@ -114,27 +114,6 @@ package body Test_IO is
 --        end case;        
 --    end Put;
 
-    procedure XStatus is
-        S : AVR_String(1..2);
-        Z : TWI.Data_Array(0..63);
-        SX : Unsigned_16;
-    begin
-
-        TWI.Get_Status(Z,SX);
-
-        for X in Z'Range loop
-            exit when X > SX;
-
-            To_Hex(Z(X),S);
-            Put(S);
-            Put(' ');
-        end loop;
-
-        Put(';');
-        CRLF;
-
-    end XStatus;
-
     Count :             Unsigned_8 := 0;
 
     procedure My_Idle is
@@ -142,8 +121,7 @@ package body Test_IO is
         Count := Count + 1;
     end My_Idle;
 
-    Do_Exit : Boolean := false;
-    My_Data : TWI.Data_Array := ( 10, 11, 12, 13 );
+    My_Data : TWI.Data_Array := ( 16#00#, 16#01#, 16#02#, 16#03#, 16#04# );
     My_Reg :  Unsigned_16    := My_Data'First;
 
     procedure My_Transmitter(Count : Natural; Byte : out Unsigned_8; Ack : in out Boolean) is
@@ -197,7 +175,6 @@ package body Test_IO is
 
         TWI.Allow_Slave(My_Receiver'Access,My_Transmitter'Access,My_EOT'Access);
         TWI.Slave;
-        XStatus;
         TWI.Disable_Slave;
 
         loop

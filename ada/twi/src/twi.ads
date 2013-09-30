@@ -110,9 +110,4 @@ package TWI is
 
     procedure Set_Idle_Proc(Proc : Idle_Proc);
 
-
-
-    -- For debugging only (will be removed in the future)
-    procedure Get_Status(Stat : out Data_Array; X : out Unsigned_16);
-
 end TWI;
