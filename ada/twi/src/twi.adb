@@ -84,6 +84,7 @@ package body TWI is
     Slave_Ack :     Boolean;                    -- True if we returned Ack
     Gen_Call :      Boolean;                    -- True if this is a general call
     Slave_Count :   Natural;                    -- Byte counter
+    pragma volatile(Slave_Count);
 
     Data_Byte :     Unsigned_8;                 -- Read/Written byte
     pragma Volatile(Data_Byte);
@@ -99,6 +100,8 @@ package body TWI is
         return TWSR and 16#FC#;                 -- Exclude the prescaler bits 1..0
     end Status;
 
+    pragma inline(Status);
+
     ------------------------------------------------------------------
     -- Internal: Start a I2C Transmission
     ------------------------------------------------------------------
@@ -111,6 +114,8 @@ package body TWI is
             TWCR := Start;
         end if;
     end TWI_Start;
+
+    pragma inline(TWI_Start);
 
     ------------------------------------------------------------------
     -- Internal: Stop an I2C Transmission
@@ -125,6 +130,8 @@ package body TWI is
             TWCR := Stop;
         end if;
     end TWI_Stop;
+
+    pragma inline(TWI_Stop);
 
     ------------------------------------------------------------------
     -- Internal: Clear TWI Peripheral out of Bus Error State
@@ -220,17 +227,21 @@ package body TWI is
         end if;
         TWAMR := Shift_Left(Unsigned_8(Mask),1);    -- 1's indicate bits to ignore
 
-        Mode       := Idle;
-
-        Buf        := null;
-        Xfer       := null;
+        Mode    := Idle;
+        Buf     := null;
+        Xfer    := null;
 
         BV_TWIE := True;
         BV_TWEA := True;
         BV_I    := True;
 
-        Mode    := Idle;
         Init    := True;
+        Listening := false;
+
+        Idle_Routine := null;
+        Receiving_Routine := null;
+        Transmitting_Routine := null;
+        EOT_Routine := null;
 
     end Initialize;
 
@@ -395,6 +406,7 @@ package body TWI is
 
         Mode           := Slave;
         Exit_Requested := false;
+        Listening      := true;
         TWCR           := 2#1100_0101#;
 
         loop
@@ -433,6 +445,111 @@ package body TWI is
     procedure ISR is
         S : Unsigned_8 := Status;
     begin
+
+        case S is
+        --------------------------------------------------------------
+        -- Slave Receiving
+        --------------------------------------------------------------
+        when 16#60# | 16#68# | 16#70# | 16#78# => -- Own SLA+W Received, Ack to be returned
+            Slave_Ack := true;
+            Gen_Call  := S >= 16#70#;       -- True if this is due to a General Call address
+            Slave_Count := 0;               -- Initialize our transaction byte count
+            if Receiving_Routine /= null then
+                TWCR := 2#1100_0101#;       -- ACK (we have software to receive)
+            else
+                TWCR := 2#1000_0101#;       -- NAK
+            end if;
+            return;
+
+        when 16#80# | 16#90# =>             -- Previously addressed with SLA+W, data byte received, ACKed
+            Data_Byte := TWDR;
+            Gen_Call  := S = 16#90#;
+            Slave_Ack := true;
+            if Receiving_Routine /= null then
+                Receiving_Routine.all(Slave_Count,Gen_Call,Data_Byte,Slave_Ack);
+            else
+                Slave_Ack := false;         -- No receiving routine
+            end if;
+            Slave_Count := Slave_Count + 1; -- 1 more byte received
+            if Slave_Ack then
+                TWCR := 2#1100_0101#;
+            else
+                TWCR := 2#1000_0101#;
+            end if;
+            return;
+
+        when 16#88# | 16#98# =>             -- Prev addr SLA+W, data recvd, NAK returned
+            Data_Byte := TWDR;
+            Slave_Ack := false;             -- NAKed
+            Gen_Call  := S = 16#98#;
+            if Receiving_Routine /= null then
+                Receiving_Routine.all(Slave_Count,Gen_Call,Data_Byte,Slave_Ack);
+            end if;
+            Slave_Count := Slave_Count + 1;
+            TWCR := 2#1100_0101#;
+            return;
+
+        when 16#A0# =>                      -- Stop/Restart has been transmitted
+            if EOT_Routine /= null then
+                EOT_Routine.all(Slave_Count,true,Exit_Requested);
+            end if;
+            if not Exit_Requested then
+                TWCR := 2#1100_0101#;       -- Switch to non-addressed, but SLA/GCA will be recognized
+            else
+                TWCR := 2#1000_0101#;       -- Switch to non-addressed, and SLA/GCA no longer recognized
+            end if;                         -- ..and exit out of the Slave() call.
+            return;
+
+        --------------------------------------------------------------
+        -- Slave Transmitting
+        --------------------------------------------------------------
+        when 16#A8# | 16#B0# =>
+            Slave_Ack   := true;
+            Slave_Count := 0;
+            if S = 16#B0# then
+                Mode := Slave;              -- Master mode lost arbitration
+            end if;
+            if Transmitting_Routine /= null then
+                Transmitting_Routine.all(Slave_Count,Data_Byte,Slave_Ack);
+                TWDR := Data_Byte;
+            else
+                TWDR := 16#FF#;
+                Slave_Ack := false;
+            end if;
+            if Slave_ACK then
+                TWCR := 2#1100_0101#;       -- + Send ACK
+            else
+                TWCR := 2#1000_0101#;       -- + Send NAK
+            end if;
+            return;
+            
+        when 16#B8# =>                      -- Data byte transmitted, ACK received
+            Slave_Ack := true;
+            if Transmitting_Routine /= null then
+                Transmitting_Routine.all(Slave_Count,Data_Byte,Slave_Ack);
+                TWDR := Data_Byte;
+            else
+                TWDR := 16#FF#;
+                Slave_Ack := false;
+            end if;
+            Slave_Count := Slave_Count + 1;
+            if Slave_ACK then
+                TWCR := 2#1100_0101#;       -- + Send ACK
+            else
+                TWCR := 2#1000_0101#;       -- + Send NAK
+            end if;
+            return;
+
+        when 16#C0# | 16#C8# =>             -- Last data byte transmitted, NAK
+            if EOT_Routine /= null then
+                EOT_Routine.all(Slave_Count,false,Exit_Requested);
+            end if;
+            TWCR := 2#1100_0101#;
+            return;
+
+        when others =>
+            null;
+        end case;
 
         case S is
 
@@ -531,101 +648,6 @@ package body TWI is
                 TWI_Stop;
                 Stopped := true;
             end if;
-
-        --------------------------------------------------------------
-        -- Slave Receiving
-        --------------------------------------------------------------
-
-        when 16#60# | 16#68# | 16#70# | 16#78# => -- Own SLA+W Received, Ack to be returned
-            Slave_Ack := true;
-            Gen_Call  := S >= 16#70#;       -- True if this is due to a General Call address
-            Slave_Count := 0;               -- Initialize our transaction byte count
-            if Receiving_Routine /= null then
-                TWCR := 2#1100_0101#;       -- ACK (we have software to receive)
-            else
-                TWCR := 2#1000_0101#;       -- NAK
-            end if;
-
-        when 16#80# | 16#90# =>             -- Previously addressed with SLA+W, data byte received, ACKed
-            Data_Byte := TWDR;
-            Gen_Call  := S = 16#90#;
-            Slave_Ack := true;
-            if Receiving_Routine /= null then
-                Receiving_Routine.all(Slave_Count,Gen_Call,Data_Byte,Slave_Ack);
-            else
-                Slave_Ack := false;         -- No receiving routine
-            end if;
-            Slave_Count := Slave_Count + 1; -- 1 more byte received
-            if Slave_Ack then
-                TWCR := 2#1100_0101#;
-            else
-                TWCR := 2#1000_0101#;
-            end if;
-
-        when 16#88# | 16#98# =>             -- Prev addr SLA+W, data recvd, NAK returned
-            Data_Byte := TWDR;
-            Slave_Ack := false;             -- NAKed
-            Gen_Call  := S = 16#98#;
-            if Receiving_Routine /= null then
-                Receiving_Routine.all(Slave_Count,Gen_Call,Data_Byte,Slave_Ack);
-            end if;
-            Slave_Count := Slave_Count + 1;
-            TWCR := 2#1100_0101#;
-
-        when 16#A0# =>                      -- Stop/Restart has been transmitted
-            if EOT_Routine /= null then
-                EOT_Routine.all(Slave_Count,true,Exit_Requested);
-            end if;
-            if not Exit_Requested then
-                TWCR := 2#1100_0101#;       -- Switch to non-addressed, but SLA/GCA will be recognized
-            else
-                TWCR := 2#1000_0101#;       -- Switch to non-addressed, and SLA/GCA no longer recognized
-            end if;                         -- ..and exit out of the Slave() call.
-
-        --------------------------------------------------------------
-        -- Slave Transmitting
-        --------------------------------------------------------------
-
-        when 16#A8# | 16#B0# =>             -- SLA+R received, ACK returned (Slave Transmitter Mode)
-            if S = 16#B0# then
-                Mode := Slave;              -- Master arbitraton lost
-            end if;
-            Slave_Ack   := true;
-            Slave_Count := 0;
-            if Transmitting_Routine /= null then
-                Transmitting_Routine.all(Slave_Count,Data_Byte,Slave_Ack);
-                TWDR := Data_Byte;
-            else
-                TWDR := 16#FF#;
-                Slave_Ack := false;
-            end if;
-            if Slave_ACK then
-                TWCR := 2#1100_0101#;       -- + Send ACK
-            else
-                TWCR := 2#1000_0101#;       -- + Send NAK
-            end if;
-            
-        when 16#B8# =>                      -- Data byte transmitted, ACK received
-            Slave_Ack := true;
-            if Transmitting_Routine /= null then
-                Transmitting_Routine.all(Slave_Count,Data_Byte,Slave_Ack);
-                TWDR := Data_Byte;
-            else
-                TWDR := 16#FF#;
-                Slave_Ack := false;
-            end if;
-            Slave_Count := Slave_Count + 1;
-            if Slave_ACK then
-                TWCR := 2#1100_0101#;       -- + Send ACK
-            else
-                TWCR := 2#1000_0101#;       -- + Send NAK
-            end if;
-
-        when 16#C0# | 16#C8# =>             -- Last data byte transmitted, NAK
-            if EOT_Routine /= null then
-                EOT_Routine.all(Slave_Count,false,Exit_Requested);
-            end if;
-            TWCR := 2#1100_0101#;
 
         when others =>
             Xfer_Error := Failed;
