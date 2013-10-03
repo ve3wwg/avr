@@ -1,8 +1,112 @@
-This is a work-in-progress project..
+                            Thu Oct  3 19:23:04 2013
+                               GNU LGPL LICENSE
+                              Warren Gay VE3WWG
 
-Master Mode is complete, with the exception of
-a couple of minor tweaks.
+This library supports interrupt driven Master and Slave I2C communications.
+The routine Master() starts one or more I2C transactions. Multiple
+transactions use the Restart bit.
+
+If  the  Slave  mode callbacks are registered, it is also possible for a
+Master  mode  communication  to  lose arbitration and begin a slave mode
+transaction. The Master call will return a failed transaction but the slave
+communication will succeed.
+
+To do only Master mode, do not register slave callbacks. Then invoke
+Master() as required.
+
+Slave only mode is done by registering slave callbacks and calling the
+procedure Slave. The Slave routine will not exit unless a callback
+invokes the Exit_Slave procedure at some point.
+
+To act as both Master and Slave, register the slave callbacks and enter
+Master as required. Once Master completes, you can switch to Slave mode
+by invoking procedure Slave as required.
+
+Master returns immediately. Invoke Complete to find out if the transmission
+is complete and successful. The Complete call can poll or block until
+completed.
+
+There is also an Idle_Proc that can be registered. It is called while in
+Master mode during a Slave communication or in Master mode while in a
+blocking Complete call.
 
 
-The Slave Mode API is currently developed.
-Fri Sep 27 21:39:08 2013
+INITIALIZATION:
+
+        use TWI;
+
+        PX :    Unsigned_8;     -- Prescaler Index
+        DV :    Unsigned_8;     -- Divisor
+    begin
+
+        Divisors(16_000_000,400_000,PX,DV);     -- 16Mhz CPU, 400kHz I2C bus
+        Initialize(16#10#,0,PX,DV);             -- Slave address $10
+
+MASTER MODE:
+
+        -- Initialize as above
+
+        Set_Idle_Proc(My_Proc'Access);          -- Called when nothing to do
+
+        IO_Buf : aliased Data_Array := (
+            GPIOA,      0,          -- 0..1, Register Address for MCP23017 + Byte
+            GPIOB,      0           -- 2..3, Register Address for MCP23017 + Read byte
+        );
+
+        Write_A : aliased Xfer_Array := (
+            0 => ( Addr => 16#20#, Xfer => Write, First => 0, Last => 1 )
+        );
+
+        Read_B : aliased Xfer_Array := (
+            0 => ( Addr => 16#20#, Xfer => Read, First => 2, Last => 3 )
+        );
+
+        IO_Buf(1,1) := Byte;
+        Master(Write_A'Access,IO_Buf'Access,Error);
+        if Error /= No_Error then
+            ...
+        end if;
+
+        Complete(Error,true);   -- Block until I/O completes
+        if Error /= No_Error then
+            ...
+        end if;
+
+        Master(Read_B'Access,IO_Buf'Access,Error);
+        ...
+        Complete(Error,true);
+        ...
+        Byte := IO_Buf(3.3);    -- Copy read byte from GPIOB
+
+
+SLAVE MODE:
+
+        -- Initialize as above
+
+        -- Register callbacks
+        Allow_Slave(My_Recv'Access,My_Xmit'Access,My_EOT'Access);  
+        Slave;                  -- Enter slave mode
+
+        -- Procedure slave only exits if Exit_Slave is called by one of the
+        -- callbacks above.
+
+        -- My_Recv is called for each byte received.
+        -- My_Xmit is called when a byte is requested by the master
+        -- My_EOT is called when the reading or writing has ended (optional)
+
+MASTER/SLAVE MODE:
+
+        -- Initialize as above
+        -- Register slave callbacks
+        -- Enter Master or Slave routines as required.
+
+
+NOTES:
+
+    1. Slave mode Recv, Xmit and EOT callbacks are invoked as part of
+       the interrupt service routine. These routines should be brief.
+       The I2C interrupt priority is 2nd to last.
+
+    2. The Idle callback is not called by the interrupt service routine.
+
+--
