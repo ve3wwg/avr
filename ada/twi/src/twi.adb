@@ -14,6 +14,77 @@ use AVR.Strings;
 
 package body TWI is
 
+    ------------------------------------------------------------------
+    -- Possible Prescale Choices
+    ------------------------------------------------------------------
+
+    Prescale : constant Data_Array := (
+        0 => 1,
+        1 => 4,
+        2 => 16,
+        3 => 64
+    );
+
+    ------------------------------------------------------------------
+    -- For the given CPU clock and Bus Rate, return actual Clock rate
+    -- for the prescale index and divisor used
+    ------------------------------------------------------------------
+    function Rate(CPU_Clock : Integer_32; Prescale_X, Divisor : Unsigned_8) return Integer_32 is
+    begin
+        return Integer_32(CPU_Clock) /
+            (16 + 2 * Integer_32(Divisor) * Integer_32(Prescale(Unsigned_16(Prescale_X))));
+    end Rate;
+
+    ------------------------------------------------------------------
+    -- For the given CPU clock and required I2C Bus clock, compute the
+    -- best prescale index and divisor values
+    ------------------------------------------------------------------
+    procedure Divisors(CPU_Clock, Bus_Clock : Integer_32; Prescale_X, Divisor : out Unsigned_8) is
+        N :         Integer_32;
+        PX :        Unsigned_16;
+        D :         Integer_32 := 0;
+        Last_SCL :  Integer_32 := 0;
+        SCL :       Integer_32;
+    begin
+
+        N := (Integer_32(CPU_Clock) - 16 * Integer_32(Bus_Clock)) / (2 * Integer_32(Bus_Clock));
+
+        if N <= 0 then
+            Prescale_X := Unsigned_8(Prescale'Last);
+            Divisor    := 255;
+            return;    -- Lowest possible clock setting
+        end if;
+
+        for X in Prescale'Range loop
+            if N / Integer_32(Prescale(X)) <= 255 then
+                if Last_SCL = 0 then
+                    PX := X;
+                    D := N / Integer_32(Prescale(PX));
+                    Last_SCL := Integer_32(CPU_Clock) / (16 + 2 * N);
+                else
+                    SCL := Integer_32(CPU_Clock) / (16 + 2 * N);
+                    if Abs(Last_SCL - Integer_32(Bus_Clock)) > Abs(SCL - Integer_32(Bus_Clock)) then
+                        PX := X;
+                        D := N / Integer_32(Prescale(PX));
+                        Last_SCL := SCL;
+                    end if; 
+                end if;
+            end if;
+        end loop;
+
+        if D > 0 then
+            -- Best achievable parameters
+            Prescale_X := Unsigned_8(PX);
+            Divisor    := Unsigned_8(D);
+        else
+            -- Highest achievable rate
+            Prescale_X  := Unsigned_8(Prescale'First);
+            Divisor     := 1;
+        end if;
+
+    end Divisors;
+
+
     BV_I :          Boolean renames AVR.MCU.SREG_Bits(AVR.MCU.I_Bit);
 
     BV_PRTWI :      Boolean renames AVR.MCU.PRR_Bits(AVR.MCU.PRTWI_Bit);
@@ -194,7 +265,7 @@ package body TWI is
     ------------------------------------------------------------------
     -- API: Initialize the I2C Peripheral 
     ------------------------------------------------------------------
-    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz; General_Call : Boolean := true) is
+    procedure Initialize(Addr, Mask : Slave_Addr; Prescale, Divisor : Unsigned_8; General_Call : Boolean := true) is
         use AVR;
     begin
 
@@ -211,14 +282,8 @@ package body TWI is
         DD_C4 := DD_Input;
         BV_C4 := True;          -- Enable pullup
 
-        case Rate is
-            when I2C_400khz =>
-                TWSR := 0;      -- Prescale x 1
-                TWBR := 8;
-            when I2C_100khz =>
-                TWSR := 1;      -- Prescale x 4
-                TWBR := 18;
-        end case;
+        TWSR := Prescale;
+        TWBR := Divisor;
 
         if General_Call then
             TWAR  := Shift_Left(Unsigned_8(Addr),1) or 1;
@@ -244,24 +309,6 @@ package body TWI is
         EOT_Routine := null;
 
     end Initialize;
-
-    ------------------------------------------------------------------
-    -- Set a Custom I2C Clock Rate
-    ------------------------------------------------------------------
-    procedure Custom_Rate(Divisor : Unsigned_8; Prescale : Prescale_Type) is
-    begin
-        case Prescale is
-            when By_1 =>
-                TWSR := 0;      -- Prescale x 1
-            when By_4 =>
-                TWSR := 1;
-            when By_16 =>
-                TWSR := 2;
-            when By_64 =>
-                TWSR := 3;
-        end case;
-        TWBR := Divisor;
-    end Custom_Rate;
 
     ------------------------------------------------------------------
     -- Initiate a Master Mode Transaction

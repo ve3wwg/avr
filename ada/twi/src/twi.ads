@@ -60,26 +60,13 @@ package TWI is
     type Xfer_Array_Ptr is access all Xfer_Array;
 
     ------------------------------------------------------------------
-    -- I2C Bus Speed (assumes 16Mhz Clock)
-    ------------------------------------------------------------------
-
-    type I2C_Rate is (
-        I2C_400khz,
-        I2C_100khz
-    );
-
-    type Prescale_Type is (
-        By_1,
-        By_4,
-        By_16,
-        By_64
-    );
-
-    ------------------------------------------------------------------
     -- Initialization
     ------------------------------------------------------------------
-    procedure Initialize(Addr, Mask : Slave_Addr; Rate : I2C_Rate := I2C_400khz; General_Call : Boolean := true);
-    procedure Custom_Rate(Divisor : Unsigned_8; Prescale : Prescale_Type);
+
+    procedure Divisors(CPU_Clock, Bus_Clock : Integer_32; Prescale_X, Divisor : out Unsigned_8);
+    procedure Initialize(Addr, Mask : Slave_Addr; Prescale, Divisor : Unsigned_8; General_Call : Boolean := true);
+
+    function Rate(CPU_Clock : Integer_32; Prescale_X, Divisor : Unsigned_8) return Integer_32;
 
     ------------------------------------------------------------------
     -- Slave Mode I/O
