@@ -33,6 +33,13 @@ package body ADC328 is
     BV_ADC1D :  Boolean     renames AVR.MCU.ADCSRA_Bits(AVR.MCU.ADC1D_Bit);
     BV_ADC0D :  Boolean     renames AVR.MCU.ADCSRA_Bits(AVR.MCU.ADC0D_Bit);
 
+    ADMUX :     Unsigned_8  renames AVR.MCU.ADMUX;
+
+    BV_ADLAR :  Boolean     renames AVR.MCU.ADMUX_Bits(AVR.MCU.ADLAR_Bit);
+
+    ------------------------------------------------------------------
+    -- Set the ADC Clock Prescaler
+    ------------------------------------------------------------------
 
     procedure Set_Prescaler(Prescale : Prescale_Type) is
         use Interfaces;
@@ -44,6 +51,10 @@ package body ADC328 is
 
     end Set_Prescaler;
 
+    ------------------------------------------------------------------
+    -- Choose the Auto Retrigger Source
+    ------------------------------------------------------------------
+
     procedure Set_Trigger(Trig_Source : Auto_Trigger) is
         B : Unsigned_8 := ADCSRB and 2#1111_1000#;
         T : Unsigned_8 := Unsigned_8(Auto_Trigger'Pos(Trig_Source));
@@ -52,6 +63,10 @@ package body ADC328 is
         ADCSRB := B or T;
 
     end Set_Trigger;
+
+    ------------------------------------------------------------------
+    -- Enable / Disable the Auto Trigger
+    ------------------------------------------------------------------
 
     procedure Enable_Trigger(On : Boolean) is
     begin
@@ -64,13 +79,63 @@ package body ADC328 is
 
     end Enable_Trigger;
 
+    ------------------------------------------------------------------
+    -- Select the ADC Input Channel
+    ------------------------------------------------------------------
+
+    procedure Select_Channel(Ch : ADC_Channel) is
+        M : Unsigned_8 := ADMUX and 2#1110_0000#;
+    begin
+
+        case Ch is
+            when ADC0 =>
+                BV_ADC0D := true;   -- Disable digital input
+            when ADC1 =>
+                BV_ADC1D := true;   -- Disable digital input
+            when ADC2 =>
+                BV_ADC2D := true;   -- Disable digital input
+            when ADC3 =>
+                BV_ADC3D := true;   -- Disable digital input
+            when ADC4 =>
+                BV_ADC4D := true;   -- Disable digital input
+            when ADC5 =>
+                BV_ADC5D := true;   -- Disable digital input
+            when ADC6 | ADC7 =>
+                null;
+            when ADC_Temp =>
+                null;
+            when ADC1_1V =>
+                null;
+            when ADC_0V =>
+                null;
+        end case;
+
+        ADMUX := M or Unsigned_8(ADC_Channel'Pos(Ch));
+
+    end Select_Channel;
+
+    ------------------------------------------------------------------
+    -- Select the ADC Reference Source
+    ------------------------------------------------------------------
+
+    procedure Select_Reference(Ref : ADC_Ref) is
+        M : Unsigned_8 := ADMUX and 2#0011_1111#;
+    begin
+        
+        ADMUX := M or Shift_Left(Unsigned_8(ADC_Ref'Pos(Ref)),6);
+
+    end Select_Reference;
+
+    ------------------------------------------------------------------
+    -- ADC Interrupt Handler
+    ------------------------------------------------------------------
 
     procedure ISR;
     pragma Machine_Attribute(
         Entity => ISR,
         Attribute_Name => "signal"
     );
-    pragma Export(C,ISR,AVR.MCU.Sig_TWI_String);
+    pragma Export(C,ISR,AVR.MCU.Sig_ADC_String);
 
     procedure ISR is
     begin

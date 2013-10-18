@@ -22,6 +22,12 @@ package ADC328 is
         ADC_0V              -- Gnd 
     );
 
+    type ADC_Ref is (
+        Aref,               -- AREF, Internal Vref disabled
+        AVcc,               -- AVcc with external capacitor at AREF pin
+        ArefInternal        -- Internal 1.1V voltage reference, externap cap at AREF pin
+    );
+
     type Auto_Trigger is (
         Free_Running,       -- Free Running mode
         Comparator,         -- Analog Comparator
@@ -35,9 +41,42 @@ package ADC328 is
 
     type Prescale_Type is range 0..7;
 
+    ------------------------------------------------------------------
+    -- Establish the Prescaler. The CPU clock is divided by this
+    -- value. E.g. 16 Mhz CPU clock divided by 128 => 125 kHz
+    -- Prescale 1 => 2 .. 7 = 128 (0 == 2 also?)
+    ------------------------------------------------------------------
+
     procedure Set_Prescaler(Prescale : Prescale_Type);
+
+    ------------------------------------------------------------------
+    -- Choose Auto Trigger Source (if enabling auto triggering)
+    ------------------------------------------------------------------
+
     procedure Set_Trigger(Trig_Source : Auto_Trigger);
     procedure Enable_Trigger(On : Boolean);
+
+    ------------------------------------------------------------------
+    -- Select the Analog Input Channel
+    ------------------------------------------------------------------
+
+    procedure Select_Channel(Ch : ADC_Channel);
+
+    ------------------------------------------------------------------
+    -- Select the ADC Reference Source
+    ------------------------------------------------------------------
+
+    procedure Select_Reference(Ref : ADC_Ref);
+
+    ------------------------------------------------------------------
+    -- Representation
+    ------------------------------------------------------------------
+
+    for ADC_Ref use (
+        Aref            => 0,
+        AVcc            => 1,
+        ArefInternal    => 3
+    );
 
     for Auto_Trigger use (
         Free_Running    => 0,
