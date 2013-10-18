@@ -1,6 +1,6 @@
 #MCU=avr5
 # RTS=rts/avr51
-MCU=atmega168
+MCU=atmega328p
 
 OPTZ	= -Os
 
@@ -24,10 +24,10 @@ clobber: clean
 	rm -f *.elf *.hex errs.t *.dump *.bin *.map
 
 burn:
-	avrdude $(PGMPARMS) -v -v -p m168 -F -U flash:w:blinky.hex
+	avrdude $(PGMPARMS) -v -v -p m328p -F -U flash:w:blinky.hex
 
 read:
-	avrdude $(PGMPARMS) -v -v -p m168 -F -U flash:r:"read.bin":r
+	avrdude $(PGMPARMS) -v -v -p m328p -F -U flash:r:"read.bin":r
 
 include ../avrdude.mk
 
