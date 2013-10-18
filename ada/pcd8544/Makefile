@@ -1,5 +1,5 @@
-BURNMCU=m168
-MCU := atmega168
+BURNMCU=m328p
+MCU := atmega328p
 
 AR	= avr-ar
 ADA	= avr-gnatmake
