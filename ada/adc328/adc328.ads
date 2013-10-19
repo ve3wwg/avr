@@ -39,22 +39,15 @@ package ADC328 is
         TC1_Capture         -- Timer/Counter 1 Capture Event
     );
 
-    type Prescale_Type is range 0..7;
-
     ------------------------------------------------------------------
     -- Establish the Prescaler. The CPU clock is divided by this
     -- value. E.g. 16 Mhz CPU clock divided by 128 => 125 kHz
     -- Prescale 1 => 2 .. 7 = 128 (0 == 2 also?)
     ------------------------------------------------------------------
 
+    type Prescale_Type is range 0..7;
+
     procedure Set_Prescaler(Prescale : Prescale_Type);
-
-    ------------------------------------------------------------------
-    -- Choose Auto Trigger Source (if enabling auto triggering)
-    ------------------------------------------------------------------
-
-    procedure Set_Trigger(Trig_Source : Auto_Trigger);
-    procedure Enable_Trigger(On : Boolean);
 
     ------------------------------------------------------------------
     -- Select the Analog Input Channel
@@ -67,6 +60,20 @@ package ADC328 is
     ------------------------------------------------------------------
 
     procedure Select_Reference(Ref : ADC_Ref);
+
+    ------------------------------------------------------------------
+    -- Choose Auto Trigger Source (if enabling auto triggering)
+    ------------------------------------------------------------------
+
+    procedure Set_Trigger(Trig_Source : Auto_Trigger);
+    procedure Enable_Trigger(On : Boolean);
+
+    ------------------------------------------------------------------
+    -- Enable Interrupts
+    ------------------------------------------------------------------
+
+    procedure Enable_Interrupts(On : Boolean);
+    procedure Start;
 
     ------------------------------------------------------------------
     -- Representation
