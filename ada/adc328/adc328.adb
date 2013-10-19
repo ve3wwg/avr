@@ -57,16 +57,20 @@ package body ADC328 is
     BV_ADLAR :  Boolean     renames AVR.MCU.ADMUX_Bits(AVR.MCU.ADLAR_Bit);
 
     ------------------------------------------------------------------
-    -- ADC Buffer
+    -- ADC Buffer and Values
     ------------------------------------------------------------------
 
-    type Word_Array is array (Unsigned_8 range <>) of Unsigned_16;
+    type Mod4_Type is mod 4;
+    type Word_Array is array (Mod4_Type) of Unsigned_16;
 
-    Buffer :    Word_Array(0..4) := ( 0, others => 0 );
-    Buf_X :     Unsigned_8 := 0;        -- Index to last written value
-    ADC_X :     Unsigned_8 := 0;        -- Tail pointer, behind last written value
+    Mode_10 :   Boolean := true;        -- True if reading 10-bit samples, else 8-bit
+    Buffer :    Word_Array := ( 0, others => 0 );
+    Buf_X :     Mod4_Type := 0;         -- Index to last written value
+    ADC_X :     Mod4_Type := 0;         -- Tail pointer, behind last written value
     Missed :    Boolean := false;       -- Set true if we lost ADC values
 
+    pragma volatile(Mode_10);
+    pragma volatile(Buffer);
     pragma volatile(Buf_X);
     pragma volatile(ADC_X);
     pragma volatile(Missed);
@@ -75,9 +79,9 @@ package body ADC328 is
     -- Set the ADC Clock Prescaler
     ------------------------------------------------------------------
 
-    procedure Set_Prescaler(Prescale : Prescale_Type) is
+    procedure Select_Prescaler(Prescale : Prescale_Type) is
         use Interfaces;
-        P : Unsigned_8 := Unsigned_8(Prescale);
+        P : Unsigned_8 := Unsigned_8(Prescale_Type'Pos(Prescale));
         A : Unsigned_8 := ADCSRA and 2#1111_1000#;
     begin
 
@@ -86,13 +90,13 @@ package body ADC328 is
 
         ADCSRA := A or (P and 2#0000_0111#);
 
-    end Set_Prescaler;
+    end Select_Prescaler;
 
     ------------------------------------------------------------------
     -- Choose the Auto Retrigger Source
     ------------------------------------------------------------------
 
-    procedure Set_Trigger(Trig_Source : Auto_Trigger) is
+    procedure Select_Trigger(Trig_Source : Auto_Trigger) is
         B : Unsigned_8 := ADCSRB and 2#1111_1000#;
         T : Unsigned_8 := Unsigned_8(Auto_Trigger'Pos(Trig_Source));
     begin
@@ -102,7 +106,7 @@ package body ADC328 is
 
         ADCSRB := B or T;
 
-    end Set_Trigger;
+    end Select_Trigger;
 
     ------------------------------------------------------------------
     -- Enable / Disable the Auto Trigger
@@ -182,27 +186,21 @@ package body ADC328 is
     end Select_Reference;
 
     ------------------------------------------------------------------
-    -- Enable the device and interrupts
-    ------------------------------------------------------------------
-
-    procedure Enable_Interrupts(On : Boolean) is
-    begin
-
-        BV_ADEN := true;        -- Enable ADC
-        BV_ADIE := true;        -- Enable interrupts
-
-    end Enable_Interrupts;
-
-    ------------------------------------------------------------------
     -- Start the [first] Conversion
     ------------------------------------------------------------------
 
-    procedure Start is
+    procedure Start(Bits_10 : boolean := true) is
     begin
 
         Buf_X := Buffer'First;
         ADC_X := Buffer'First;
         Missed := false;
+
+        if Bits_10 then
+            BV_ADLAR := false;  -- ADCH contains upper MSB 2 bits + 8 LSB in ADCL
+        else
+            BV_ADLAR := true;   -- ADCH contains full MSB 8 bits
+        end if;
 
         BV_ADEN := true;        -- Enable ADC
         BV_ADIE := true;        -- Enable interrupts
@@ -210,6 +208,47 @@ package body ADC328 is
 
     end Start;
 
+    ------------------------------------------------------------------
+    -- Unblocking Read of ADC Value
+    ------------------------------------------------------------------
+
+    procedure Read(Value : out Unsigned_16; Ready : out Boolean) is
+    begin
+
+        Ready := Buf_X /= ADC_X;
+
+        if Ready then
+            ADC_X := ADC_X + 1;
+            Value := Buffer(ADC_X);
+        end if;
+
+    end Read;
+
+    ------------------------------------------------------------------
+    -- Block until a Value is Ready to be Returned
+    ------------------------------------------------------------------
+
+    procedure Read(Value : out Unsigned_16; Idle : Idle_Proc) is
+    begin
+
+        while Buf_X = ADC_X loop
+            Idle.all;
+        end loop;
+        
+        ADC_X := ADC_X + 1;
+        Value := Buffer(ADC_X);
+
+    end Read;
+
+    ------------------------------------------------------------------
+    -- Return true if there were lost values
+    ------------------------------------------------------------------
+
+    procedure Lost(Indicator : out Boolean) is
+    begin
+        Indicator := Missed;    -- Return indicator
+        Missed    := false;     -- Reset indicator
+    end Lost;
 
     ------------------------------------------------------------------
     -- ADC Interrupt Handler
@@ -225,13 +264,13 @@ package body ADC328 is
     procedure ISR is
     begin
     
-        Buf_X := Buf_X + 1;
-        if Buf_X > Buffer'Last then
-            Buf_X := Buffer'First;
-        end if;
-
-        if Buf_X /= ADC_X then
-            Buffer(Buf_X) := Shift_Left(Unsigned_16(ADCH and 2#0000_0011#),8) or Unsigned_16(ADCL);
+        if Buf_X + 1 /= ADC_X then
+            Buf_X := Buf_X + 1;
+            if Mode_10 then
+                Buffer(Buf_X) := Shift_Left(Unsigned_16(ADCH and 2#0000_0011#),8) or Unsigned_16(ADCL);
+            else
+                Buffer(Buf_X) := Unsigned_16(ADCH);
+            end if;
         else
             Missed := true;
         end if;

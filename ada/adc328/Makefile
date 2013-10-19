@@ -1,5 +1,5 @@
-BURNMCU=m168
-MCU := atmega168
+BURNMCU=m328p
+MCU := atmega328p
 
 AR	= avr-ar
 ADA	= avr-gnatmake
@@ -19,17 +19,16 @@ all:	lib/libadc328.a
 lib/libadc328.a: lib obj build.gpr
 	$(ADA) $(MFLAGS) -Pbuild.gpr 
 
-
 dump:
-	avr-objdump -mavr:5 -d testmain.elf
+	avr-objdump -mavr:5 -d main.elf
 
-test:	test.gpr testmain.adb test_io.ads test_io.adb # lib/libtwi.a 
+test:	lib/libadc328.a test.gpr main.adb test.ads test.adb
 	$(ADA) $(MFLAGS) -Ptest.gpr
-	avr-size -C --mcu=$(MCU) testmain.elf
-	$(OCP) -O ihex -R .eeprom testmain.elf testmain.hex
+	avr-size -C --mcu=$(MCU) main.elf
+	$(OCP) -O ihex -R .eeprom main.elf main.hex
 
-size:	testmain.elf
-	avr-size -C --mcu=$(MCU) testmain.elf
+size:	main.elf
+	avr-size -C --mcu=$(MCU) main.elf
 
 lib:	
 	mkdir ./lib
@@ -49,8 +48,8 @@ clobber: clean
 	rm -fr ./obj ./lib
 	rm -f *.map lib/lib8544.a lib/*.ali lib/*.o
 
-burn:	testmain.hex
-	avrdude $(PGMPARMS) -p $(BURNMCU) -U flash:w:testmain.hex
+burn:	main.hex
+	avrdude $(PGMPARMS) -p $(BURNMCU) -U flash:w:main.hex
 
 cu:	
 	putty -load boarduino &

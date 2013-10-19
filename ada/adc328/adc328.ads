@@ -10,10 +10,7 @@ use Interfaces;
 
 package ADC328 is
 
-    type Error_Code is (
-        No_Error,           -- No error (Success)
-        Failed              -- Failed for an unknown reason
-    );
+    -- Selects the ADC Channel to read
 
     type ADC_Channel is (
         ADC0, ADC1, ADC2, ADC3, ADC4, ADC5, ADC6, ADC7,
@@ -22,11 +19,15 @@ package ADC328 is
         ADC_0V              -- Gnd 
     );
 
+    -- Selects the ADC Reference
+
     type ADC_Ref is (
         Aref,               -- AREF, Internal Vref disabled
         AVcc,               -- AVcc with external capacitor at AREF pin
         ArefInternal        -- Internal 1.1V voltage reference, externap cap at AREF pin
     );
+
+    -- Selects the Auto trigger mode
 
     type Auto_Trigger is (
         Free_Running,       -- Free Running mode
@@ -39,44 +40,34 @@ package ADC328 is
         TC1_Capture         -- Timer/Counter 1 Capture Event
     );
 
-    ------------------------------------------------------------------
-    -- Establish the Prescaler. The CPU clock is divided by this
-    -- value. E.g. 16 Mhz CPU clock divided by 128 => 125 kHz
-    -- Prescale 1 => 2 .. 7 = 128 (0 == 2 also?)
-    ------------------------------------------------------------------
+    type Prescale_Type is (
+        Divide_By_2,
+        Divide_By_4,
+        Divide_By_8,
+        Divide_By_16,
+        Divide_By_32,
+        Divide_By_64,
+        Divide_By_128
+    );
 
-    type Prescale_Type is range 0..7;
-
-    procedure Set_Prescaler(Prescale : Prescale_Type);
-
-    ------------------------------------------------------------------
-    -- Select the Analog Input Channel
-    ------------------------------------------------------------------
-
+    procedure Select_Prescaler(Prescale : Prescale_Type);
     procedure Select_Channel(Ch : ADC_Channel);
-
-    ------------------------------------------------------------------
-    -- Select the ADC Reference Source
-    ------------------------------------------------------------------
-
     procedure Select_Reference(Ref : ADC_Ref);
 
-    ------------------------------------------------------------------
-    -- Choose Auto Trigger Source (if enabling auto triggering)
-    ------------------------------------------------------------------
-
-    procedure Set_Trigger(Trig_Source : Auto_Trigger);
+    procedure Select_Trigger(Trig_Source : Auto_Trigger);
     procedure Enable_Trigger(On : Boolean);
 
-    ------------------------------------------------------------------
-    -- Enable Interrupts
-    ------------------------------------------------------------------
+    procedure Start(Bits_10 : boolean := true);
 
-    procedure Enable_Interrupts(On : Boolean);
-    procedure Start;
+    type Idle_Proc is access procedure;
+
+    procedure Read(Value : out Unsigned_16; Ready : out Boolean);
+    procedure Read(Value : out Unsigned_16; Idle : Idle_Proc);
+
+    procedure Lost(Indicator : out Boolean);
 
     ------------------------------------------------------------------
-    -- Representation
+    -- Representations
     ------------------------------------------------------------------
 
     for ADC_Ref use (
@@ -95,5 +86,37 @@ package ADC328 is
         TC1_Overflow    => 6,
         TC1_Capture     => 7 
     );
+
+    for Prescale_Type use (
+        Divide_By_2     => 1,
+        Divide_By_4     => 2,
+        Divide_By_8     => 3,
+        Divide_By_16    => 4,
+        Divide_By_32    => 5,
+        Divide_By_64    => 6,
+        Divide_By_128   => 7
+    );
+
+    ------------------------------------------------------------------
+    -- Examples
+    ------------------------------------------------------------------
+
+--  Select_Prescaler(Divide_By_128);
+--  Select_Channel(ADC0);
+--  procedure Select_Trigger(Free_Running);
+--  Select_Reference(AVcc);
+--  Start(true);
+--
+--  declare
+--      Ready : Boolean;
+--      Value : Unsigned_16;
+--  begin
+--      loop
+--          Read(Value,Ready);
+--          if Ready then
+--              ...
+--          end if;
+--      end loop;
+--  end;
 
 end ADC328;
