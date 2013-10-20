@@ -60,13 +60,13 @@ package body ADC328 is
     -- ADC Buffer and Values
     ------------------------------------------------------------------
 
-    type Mod4_Type is mod 4;
-    type Word_Array is array (Mod4_Type) of Unsigned_16;
+    type Mod_Type is mod 16;
+    type Word_Array is array (Mod_Type) of Unsigned_16;
 
     Mode_10 :   Boolean := true;        -- True if reading 10-bit samples, else 8-bit
     Buffer :    Word_Array := ( 0, others => 0 );
-    Buf_X :     Mod4_Type := 0;         -- Index to last written value
-    ADC_X :     Mod4_Type := 0;         -- Tail pointer, behind last written value
+    Buf_X :     Mod_Type := 0;          -- Index to last written value
+    ADC_X :     Mod_Type := 0;          -- Tail pointer, behind last written value
     Missed :    Boolean := false;       -- Set true if we lost ADC values
 
     pragma volatile(Mode_10);
