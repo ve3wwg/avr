@@ -5,7 +5,7 @@
 -- Protected under the GNU GENERAL PUBLIC LICENSE v2, June 1991
 
 with AVR.MCU;
--- with AVR.Wait;
+with AVR.Interrupts;
 
 package body ADC328 is
 
@@ -192,9 +192,13 @@ package body ADC328 is
     procedure Start(Bits_10 : boolean := true) is
     begin
 
+        BV_ADEN := true;        -- Enable ADC
+
         Buf_X := Buffer'First;
         ADC_X := Buffer'First;
         Missed := false;
+
+        Mode_10 := Bits_10;
 
         if Bits_10 then
             BV_ADLAR := false;  -- ADCH contains upper MSB 2 bits + 8 LSB in ADCL
@@ -202,9 +206,13 @@ package body ADC328 is
             BV_ADLAR := true;   -- ADCH contains full MSB 8 bits
         end if;
 
-        BV_ADEN := true;        -- Enable ADC
+        AVR.Interrupts.Disable;
+
+        BV_ADIF := true;        -- Clear any pre-existing interrupt
         BV_ADIE := true;        -- Enable interrupts
         BV_ADSC := true;
+
+        AVR.Interrupts.Enable;
 
     end Start;
 
@@ -256,18 +264,22 @@ package body ADC328 is
 
     procedure ISR;
     pragma Machine_Attribute(
-        Entity => ISR,
+        Entity         => ISR,
         Attribute_Name => "signal"
     );
+
     pragma Export(C,ISR,AVR.MCU.Sig_ADC_String);
 
     procedure ISR is
+        L, H : Unsigned_8;
     begin
     
         if Buf_X + 1 /= ADC_X then
             Buf_X := Buf_X + 1;
             if Mode_10 then
-                Buffer(Buf_X) := Shift_Left(Unsigned_16(ADCH and 2#0000_0011#),8) or Unsigned_16(ADCL);
+                L := ADCL;
+                H := ADCH and 2#0000_0011#;
+                Buffer(Buf_X) := Shift_Left(Unsigned_16(H),8) or Unsigned_16(L);
             else
                 Buffer(Buf_X) := Unsigned_16(ADCH);
             end if;
