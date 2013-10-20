@@ -14,7 +14,7 @@ package ADC328 is
 
     type ADC_Channel is (
         ADC0, ADC1, ADC2, ADC3, ADC4, ADC5, ADC6, ADC7,
-        ADC_Temp,           -- Temp sensor
+        ADC_Temp,           -- Temp sensor (auto selects ArefInternal)
         ADC1_1V,            -- 1.1 volt reference
         ADC_0V              -- Gnd 
     );
