@@ -168,6 +168,10 @@ package body ADC328 is
 
         ADMUX := M or Unsigned_8(ADC_Channel'Pos(Ch));
 
+        if Ch = ADC_Temp then
+            Select_Reference(ArefInternal);
+        end if;
+
     end Select_Channel;
 
     ------------------------------------------------------------------
