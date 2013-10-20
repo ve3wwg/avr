@@ -16,7 +16,7 @@ MFLAGS = -O$(OPT) -p -XMCU=$(MCU)
 
 all:	lib/libadc328.a
 
-lib/libadc328.a: lib obj build.gpr
+lib/libadc328.a: lib obj build.gpr adc328.adb adc328.ads
 	$(ADA) $(MFLAGS) -Pbuild.gpr 
 
 dump:
