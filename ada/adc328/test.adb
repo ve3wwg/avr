@@ -51,6 +51,8 @@ package body Test is
         Ready : Boolean;
         Value : Unsigned_16;
         Dots :  Boolean := false;
+        Report : Boolean := false;
+        Missed : Boolean := false;
     begin
 
         AVR.UART.Init(AVR.UART.Baud_19200_16MHz,False);
@@ -70,11 +72,21 @@ package body Test is
                     Dots := false;
                 end if;
                 Put_Word(Value);
+                CRLF;
+                Lost(Missed);
+                Report := false;
                 Start;
             else
                 if not Dots then
-                    Put_Line("Waiting..");
+--                  Put_Line("Waiting..");
                     Dots := true;
+                end if;
+            end if;
+            if not Report then
+                Lost(Missed);
+                if Missed then
+                    Report := true;
+                    Put_Line("Lost ADC value(s)..");
                 end if;
             end if;
         end loop;
