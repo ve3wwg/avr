@@ -1,0 +1,28 @@
+Firefly Jar
+
+This code is written in avr-gcc assembly language (not for AVR-Studio).
+It  is intended to drive up to 5 LEDs inside a "firefly jar", driven by
+a PDIP-8 ATtiny13A. The fireflys light up randomly, each driven by their
+own state machine, with varying brightness using software PWM.
+
+The software PWM is driven from one hardware Timer 0, which updates the
+software counters and PWM state in an ISR routine.
+
+After the fireflys put on a light show for about 1.5 hours (configurable
+in source code), the ATtiny13A is put into power down mode, consuming 
+only a microamp or two.  Operating under these conditions, once per
+night, a pair of NiCAD 600 mAh batteries should last a week before
+needing a recharge. 
+
+This source code is available under the GPL license.
+
+
+AVR Memory Usage
+----------------
+Device: attiny13a
+
+Program:     672 bytes (65.6% Full)
+(.text + .data + .bootloader)
+
+Data:         24 bytes (37.5% Full)
+(.data + .bss + .noinit)
