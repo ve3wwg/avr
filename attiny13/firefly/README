@@ -17,10 +17,12 @@ needing a recharge.
 For my build, I added a pair of series connected solar cells from
 retired solar lamps, charging 3 x 1.2 Volt NiCad solar batteries through
 a diode. When fully charged, the NiCads produce 3 x 1.2V = 3.6V.  The
-jar lid contains a RESET button, which re-activates the fireflies. After
+jar lid contains a RESET button, which re-activates the firefly show. After
 a day of charging in the child's bedroom window, you should be able to
 press reset button at bedtime, to start the firefly show. The show will
-last for 1.5 hours before going into a power down state.
+last for 1.5 hours before going into a power down state, conserving
+the battery. If the child awakens and needs to see the fireflies again,
+press the reset button again.
 
 LICENSE: This source code is available under the GPL license.
 
