@@ -14,9 +14,21 @@ only a microamp or two.  Operating under these conditions, once per
 night, a pair of NiCAD 600 mAh batteries should last a week before
 needing a recharge. 
 
-This source code is available under the GPL license.
+For my build, I added a pair of series connected solar cells from
+retired solar lamps, charging 3 x 1.2 Volt NiCad solar batteries through
+a diode. When fully charged, the NiCads produce 3 x 1.2V = 3.6V.  The
+jar lid contains a RESET button, which re-activates the fireflies. After
+a day of charging in the child's bedroom window, you should be able to
+press reset button at bedtime, to start the firefly show. The show will
+last for 1.5 hours before going into a power down state.
 
+LICENSE: This source code is available under the GPL license.
 
+$ make
+avr-gcc -Wall -Os -DSIM= -DF_CPU=8000000 -mmcu=attiny13a -x assembler-with-cpp -c -g -DSIM= firefly.S -o firefly.o
+avr-gcc -Wall -Os -DSIM= -DF_CPU=8000000 -mmcu=attiny13a firefly.o -o firefly.elf
+avr-objcopy -j .text -j .data -O ihex firefly.elf firefly.hex
+avr-size --format=avr --mcu=attiny13a firefly.elf
 AVR Memory Usage
 ----------------
 Device: attiny13a
@@ -26,3 +38,18 @@ Program:     672 bytes (65.6% Full)
 
 Data:         24 bytes (37.5% Full)
 (.data + .bss + .noinit)
+
+
+MEDIA FILES:
+------------
+
+ - demo video:
+   https://drive.google.com/file/d/0B_UJgDszdsp0U0JWVHZTc0pPczQ/edit?usp=sharing
+
+ - PCB Photo:
+   https://drive.google.com/file/d/0B_UJgDszdsp0bXNDckp0bnpCdFE/edit?usp=sharing
+
+ - Another Photo showing Jar in Window, Charging:
+   https://drive.google.com/file/d/0B_UJgDszdsp0MVlzMzR4YndJVXc/edit?usp=sharing
+
+
