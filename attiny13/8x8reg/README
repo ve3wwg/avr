@@ -1,0 +1,41 @@
+The 8x8reg Project
+------------------
+
+The 8x8reg project is about using an ATtiny13 to drive a 8x8 LED Matrix,
+using the MAX7219 chip. This is a "utility" project, designed to display
+8 x 8 bit status information.
+
+The data is sent to the '13 on one wire using a Manchester biphase
+encoded signal. 12 bits are sent: 4 bits selecting a zero-based row
+(0-7), and 8 bits of LED data.
+
+Debugging ATtinys can be difficult, especially in assembly language.
+This project is designed to allow your code in another Tiny send data to
+be displayed using only one output pin. In this way, you can display up
+to 64 bits of information, or 8 bytes worth.
+
+In addition to only requiring one output pin, SENDING Manchester biphase
+is very easy to bit bang out of the sending host, using a minimum of
+code (and thus not disrupt the environment being debugged too much).
+
+Once the receiver and matrix are built into some kind of utility
+cabinet, you only need to link your ATtiny* being debugged with a small
+sending routine. Then make calls to it, whenever you want a byte
+displayed on a particular row of the destination matrix. All this
+happens using one wire from the host to the matrix.
+
+The receiver is designed to receive signals at varying speeds. The
+receiver expects one initial zero bit, which is used as a start bit
+after the line sits idle (high). The zero bit is timed, so that it
+knows how long each half bit time is. From this, the receiver can
+adapt to any reasonable sending speed.
+
+Should the sending signal be too irregular to be received, the matrix
+will display a fault code and other trace information. See the end
+of the module 8x8rx.S for more details.
+
+While the receiver is flexible, extremely slow signals will overflow
+its counters and fault. Likewise, if you attempt to send the signal
+too quickly, the receiver's state machine will also fault.
+
+Status: In development, Thu Sep 25 22:53:13 2014
