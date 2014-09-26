@@ -1,7 +1,7 @@
 ;---------------------------------------------------------------------
 ; 8x8 Matrix Receiver Module (MAX7219 Chip)
 ; Warren W. Gay VE3WWG
-; License: GPL v2
+; License: GPL v2 (see accompanying file LICENSE)
 ;
 ; With Fuses set to: H:FF, L:6A
 ; The system starts with internal RC Osc at 9.6 MHz, divided by 8.
