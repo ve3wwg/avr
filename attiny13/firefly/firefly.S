@@ -17,7 +17,7 @@
 ; random. The flashes have random ramp up and decay times for added
 ; visual interest.
 ;
-; SOFTWARE LICENSE: GPL
+; SOFTWARE LICENSE: GPL (see accompanying file LICENSE)
 ;
 ; Use avr-gcc to compile.
 ;---------------------------------------------------------------------
