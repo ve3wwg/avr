@@ -12,11 +12,13 @@ encoded signal. 12 bits are sent: 4 bits selecting a zero-based row
 Debugging ATtinys can be difficult, especially in assembly language.
 This project is designed to allow your code in another Tiny send data to
 be displayed using only one output pin. In this way, you can display up
-to 64 bits of information, or 8 bytes worth.
+to 64 bits of information, or 8 bytes worth on an 8x8 matrix external
+to the MCU being debugged.
 
 In addition to only requiring one output pin, SENDING Manchester biphase
 is very easy to bit bang out of the sending host, using a minimum of
 code (and thus not disrupt the environment being debugged too much).
+See tx8x8.S/tx8x8.h files for source code (and test program testmain.c).
 
 Once the receiver and matrix are built into some kind of utility
 cabinet, you only need to link your ATtiny* being debugged with a small
@@ -26,16 +28,46 @@ happens using one wire from the host to the matrix.
 
 The receiver is designed to receive signals at varying speeds. The
 receiver expects one initial zero bit, which is used as a start bit
-after the line sits idle (high). The zero bit is timed, so that it
-knows how long each half bit time is. From this, the receiver can
-adapt to any reasonable sending speed.
+after the line sits idle (high). The zero bit is timed, so that the
+receiver knows how long each half bit time is. From this, the receiver
+can adapt to any reasonable sending rate. The rate must be consistent
+within the frame being sent.
 
 Should the sending signal be too irregular to be received, the matrix
 will display a fault code and other trace information. See the end
-of the module 8x8rx.S for more details.
+of the module 8x8rx.S for more details about fault codes.
 
 While the receiver is flexible, extremely slow signals will overflow
 its counters and fault. Likewise, if you attempt to send the signal
-too quickly, the receiver's state machine will also fault.
+too quickly, the receiver's state machine will not keep up and 
+generate a fault also.
 
-Status: In development, Thu Sep 25 22:53:13 2014
+RECEIVER:
+---------
+
+1. make    	(builds 8x8rx.S into 8x8rx.hex: assumes ATtiny13A)
+2. make flash
+3. make disasm 	(to disassemble)
+4. make clobber (to completely clean up)
+
+RECEIVING PINOUT ASSUMED:
+-------------------------
+
+PB0 - Input:  Manchester biphase data in 
+PB1 - Output: Fault LED, active High
+PB2 - Output: 8x8 Matrix DIN
+PB3 - Output: 8x8 Matrix CS/LOAD
+PB4 - Output: 8x8 Matrix CLK
+PB5 - Input: /RESET
+
+TRANSMITTING DEMO:
+------------------
+
+1. make -f Makefile.send (builds testmain.c tx8x8.S into testmain.hex)
+2. make -f Makefile.send flash (upload - assumes USB Boarduino, sending on PB0)
+3. make -f Makefile.send clobber (completely cleans up)
+3. make -f Makefile.send disasm  (disassemble testmain.hex)
+
+Alter tx8x8.S at the top to choose a different sending port. The
+port PB0 is assumed.
+
