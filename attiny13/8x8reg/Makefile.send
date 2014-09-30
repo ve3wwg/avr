@@ -1,0 +1,61 @@
+######################################################################
+#  Sending (Test) program Makefile
+#  Mon Sep 29 22:12:32 2014	Warren W. Gay VE3WWG
+#  LICENSE: GPL v2
+######################################################################
+
+DEVICE	?= atmega328p
+
+F_CPU	?= 8000000
+
+PGBAUD  = 115200
+PGMBOARDUINO = -c arduino -P /dev/tty.usbserial-A6005XBY -B $(PGBAUD)
+
+OPTZ	= -Os $(DEFNS)
+DEFNS	= -DF_CPU=$(F_CPU)
+COPTS	= $(OPTZ) -std=gnu99
+
+.SUFFIXES: .hex .elf
+
+AVRDUDE = avrdude $(PROGRAMMER) -p $(PRGDEV)
+BOARDUINO = avrdude $(PGMBOARDUINO) -p atmega328p
+
+CC	= avr-gcc -Wall $(OPTZ) -mmcu=$(DEVICE)
+CXX	= avr-g++ -Wall $(OPTZ) -mmcu=$(DEVICE)
+AS	= avr-as
+
+.c.o:
+	$(CC) -c $(COPTS) $< -o $@
+
+.cpp.o:
+	$(CXX) -c $(OPTS) $< -o $@
+
+.S.o:
+	$(CC) -x assembler-with-cpp -c -g $(DEFNS) $< -o $@ -Wa,-a=$*.list
+
+.c.s:
+	$(CC) -S $< -o $@
+
+.elf.hex:
+	@rm -f $*.hex
+	avr-objcopy -j .text -j .data -O ihex $< $@
+	avr-size --format=avr --mcu=$(DEVICE) $<
+
+all:	testmain.hex 
+
+flash:	testmain.hex
+	$(BOARDUINO) -U flash:w:testmain.hex:i
+
+testmain.elf: testmain.o tx8x8.o
+	$(CC) testmain.o tx8x8.o -o testmain.elf
+
+clean:
+	rm -f *.o
+
+clobber: clean
+	rm -f *.elf *.hex .errs.t *.list
+
+disasm:
+	avr-objdump -d testmain.elf
+
+# End Makefile.send
