@@ -36,8 +36,9 @@ SYNOPSIS
        /* Blinking exit(2) routine */
        void blink_exit(unsigned rc);
 
-       /* Blinking abort(2) routine */
-       void blink_abort();
+       /* Blinking abort(2) routines */
+       void blink_abort();          /* Non macro */
+       void blink_cabort();         /* Macro: blink_abort() ifndef NDEBUG */
 
 DESCRIPTION
 
@@ -70,24 +71,37 @@ DESCRIPTION
        has already configured the GPIO as an output in his own code. This
        routine simply notes the I/O port and GPIO bit to use for the LED.
 
+
        The bassert_blink() function blinks the LED n times and returns. 
-       This function is invoked by blink_assert(), from a forever loop.
-       If n is provided as zero, the LED remains on without blinking.
+       This function is invoked by the macro blink_assert(), in an
+       endless loop. If n is provided as zero, the LED turns on without 
+       blinking, and remains on.
 
 
        Function blink_exit() repeatedly blinks one long LED on followed 
-       by a short off period. Otherwise the LED blinks as if
-       bassert_blink(n) was called, where n > 0.
+       by a short off period, when the return code rc == 0.
 
-       In contrast, abort() repeatedly flashes the LED on briefly, followed
+       Otherwise blink_exit() behaves as if bassert_blink(n) was called.
+
+       blink_abort() is a general abort function. In contrast to calling
+       blink_exit(0), blink_abort() flashes the LED on briefly, followed
        by a long off period. This gives an appearance of a repeated brief 
-       flash, indicating a general abort.
+       flash, indicating a problem.
 
        Functions blink_exit() and blink_abort() do not return to the caller.
 
+       Macro blink_cabort() is conditionally compiled into your code, 
+       when the macro NDEBUG is not defined. The macro invokes the function
+       blink_abort(). The programmer can use this macro to instrument his
+       code with debug blink_cabort() calls for failure points that are
+       assumed to never occur (hence they don't need identification by a 
+       blink count). These are "just in case" notifier calls. Later when
+       the code is considered debugged, the code produced by these calls
+       can be eliminated by compiling with the macro NDEBUG defined.
+
 RETURN VALUE
 
-       No value is returned.
+       No value is returned by any of the functions or macros.
 
 EXAMPLE
 
@@ -110,3 +124,12 @@ BUGS
 
        The blinking code depends upon the AVR-libc routine delay_ms(). For
        that reason, builds will need the macro value F_CPU defined.
+
+       Note that while blink_assert() and blink_cabort() respects the NDEBUG
+       macro, calls to the other functions remain compiled in. If you also
+       want to remove the blink_config() call for example, be sure to wrap 
+       the calls like this:
+
+       #ifndef NDEBUG
+           bassert_config(&DDRB,&PORTB,PB5,1);
+       #endif
