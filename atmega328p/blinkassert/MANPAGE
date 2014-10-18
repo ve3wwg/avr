@@ -29,9 +29,8 @@ DESCRIPTION
        unhindered.
 
        The purpose of this macro is to help programmers find bugs in their
-       their code. The idea is that the expression is tested and when found
-       to evaluate as false, then the execution is aborted with an 
-       indicator.
+       their code. The idea is that the expression is tested and when it
+       evaluates false, then the execution is aborted with an indicator.
 
        Given that AVR platforms have no concept of abort(), the LED
        configured by bassert_config() is used in its place. When the
