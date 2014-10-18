@@ -1,0 +1,74 @@
+BLINK_ASSERT(3)         AVR Programmer's Manual            BLINK_ASSERT(3)
+
+NAME        
+
+       blink_assert - abort the program if assertion is false.
+
+SYNOPSIS
+
+       #include <blinkassert.h>
+
+       void bassert_config(
+         volatile uint8_t *ddrx,    /* DDR register, e.g. &DDRB */
+         volatile uint8_t *portx,   /* Port register, e.g. &PORTB */
+         unsigned bit,              /* GPIO bit (0-7) of the port */
+         unsigned active_high       /* 0 = active low, else active high */
+       );
+
+       void bassert_blink(unsigned n);
+
+       void blink_assert(scalar expression, n);
+
+DESCRIPTION
+
+       If the macro NDEBUG was defined at the moment <blinkassert.h> was 
+       last included, the macro blink_assert() generates no code, and hence
+       does nothing at all.  Otherwise, the macro causes the configured
+       LED to blink forever if the expression is false (i.e., compares
+       equal to zero). If the expression is true, control passes through
+       unhindered.
+
+       The purpose of this macro is to help programmers find bugs in their
+       their code. The idea is that the expression is tested and when found
+       to evaluate as false, then the execution is aborted with an 
+       indicator.
+
+       Given that AVR platforms have no concept of abort(), the LED
+       configured by bassert_config() is used in its place. When the
+       blink_assert() macro needs to abort, it flashes the LED n times,
+       pauses and repeats forever.
+
+       The value n in the blink_assert() macro permits the programmer to 
+       place several assertion macros in his code. The specific instance
+       of an abort can be identified by counting the number of LED blinks.
+
+       The bassert_config() function must be called before the function
+       bassert_blink() or the macro blink_assert() is called. The
+       bassert_config() macro not only configures the GPIO bit for output,
+       but informs the bassert_blink() function of the GPIO to be used.
+
+       The bassert_blink() function blinks the LED n times and returns. 
+       This function is invoked by blink_assert(), from a forever loop.
+
+RETURN VALUE
+
+       No value is returned.
+
+EXAMPLE
+
+       bassert_config(&DDRB,&PORTB,PB5,1);
+
+       blink_assert(flag==1,2); /* Flashes 2 times, if flag != 1 */
+       blink_assert(1==0,3);    /* This will always fail, blinking 3 times */
+
+CONFORMING TO
+
+       blink_assert() is based upon the POSIX.1-2001, C89, C99 assert(3) 
+       idea.
+
+BUGS
+
+       blink_assert() is implemented as a macro; if the expression tested has
+       side-effects, program behavior will be different depending on whether
+       NDEBUG is defined.  This may create Heisenbugs which go away when
+       debugging is turned on.
