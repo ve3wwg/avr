@@ -25,6 +25,7 @@ SYNOPSIS
          unsigned active_high       /* 0 = active low, else active high */
        );
 
+
        /* Assertion test macro */
        void blink_assert(scalar expression, n);
 
@@ -32,7 +33,7 @@ SYNOPSIS
        /* Blink n times and return */
        void bassert_blink(unsigned n);
 
-       /* Blinking exit(2) routing */
+       /* Blinking exit(2) routine */
        void blink_exit(unsigned rc);
 
        /* Blinking abort(2) routine */
