@@ -71,3 +71,6 @@ BUGS
        side-effects, program behavior will be different depending on whether
        NDEBUG is defined.  This may create Heisenbugs which go away when
        debugging is turned on.
+
+       The blinking code depends upon the AVR-libc routine delay_ms(). For
+       that reason, builds will need the macro value F_CPU defined.
