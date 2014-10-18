@@ -66,6 +66,8 @@ DESCRIPTION
        bassert_config() macro not only configures the GPIO bit for output,
        but informs the bassert_blink() function of the GPIO to be used.
 
+       Routine bassert_config0() may be used instead, if the programmer
+       has already configured the GPIO as an output in his own code.
 
        The bassert_blink() function blinks the LED n times and returns. 
        This function is invoked by blink_assert(), from a forever loop.
