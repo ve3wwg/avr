@@ -50,14 +50,11 @@ blink(void) {
  *********************************************************************/
 
 void
-bassert_blink(unsigned n) {
-	unsigned count asm("r4");
+bassert_blink(unsigned count) {
 
-	for (;;) {
-		for ( count = n; count > 0; --count )
-			blink();		/* Blink once */
-		_delay_ms(2000);		/* Pause between blinks */
-	}
+	for ( ; count > 0; --count )
+		blink();		/* Blink once */
+	_delay_ms(2000);		/* Pause between blinks */
 }
 
 

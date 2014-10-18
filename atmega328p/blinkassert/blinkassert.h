@@ -12,7 +12,7 @@
 void bassert_config(volatile uint8_t *ddrx,volatile uint8_t *portx,unsigned bit,unsigned active_high);
 void bassert_blink(unsigned n);
 
-#define blink_assert(assertion,blinks) { if ( !(assertion) ) bassert_blink(blinks); }
+#define blink_assert(assertion,blinks) { if ( !(assertion) ) for(;;) bassert_blink(blinks); }
 
 #endif /* BLINKASSERT_H_ */
 
