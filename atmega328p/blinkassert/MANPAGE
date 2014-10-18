@@ -78,11 +78,10 @@ DESCRIPTION
        blinking, and remains on.
 
 
-       Function blink_exit() repeatedly blinks one long LED on followed 
-       by a short off period, when the return code rc == 0.
-
-       Otherwise blink_exit() behaves as if bassert_blink(n) when the
-       return code rc is greater than zero.
+       Function blink_exit(rc) repeatedly blinks one long LED on followed 
+       by a short off period, when the return code rc == 0. Otherwise
+       blink_exit(rc) behaves as if bassert_blink(rc) was repeatedly
+       called.
 
        blink_abort() is a general abort function. In contrast to calling
        blink_exit(0), blink_abort() flashes the LED on briefly, followed
