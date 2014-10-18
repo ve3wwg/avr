@@ -17,7 +17,12 @@ extern "C" {
 void bassert_config(volatile uint8_t *ddrx,volatile uint8_t *portx,unsigned bit,unsigned active_high);
 void bassert_blink(unsigned n);
 
+
+#ifndef NDEBUG
 #define blink_assert(assertion,blinks) { if ( !(assertion) ) for(;;) bassert_blink(blinks); }
+#else
+#define blink_assert(assertion,blinks)
+#endif
 
 
 #ifdef __cplusplus
