@@ -61,13 +61,14 @@ DESCRIPTION
        place several assertion macros in his code. The specific instance
        of an abort can be identified by counting the number of LED blinks.
 
-       The bassert_config() function must be called before the function
-       bassert_blink() or the macro blink_assert() is called. The
-       bassert_config() macro not only configures the GPIO bit for output,
-       but informs the bassert_blink() function of the GPIO to be used.
+       The bassert_config() function must be called prior to any of the
+       other functions or macros listed on this page. The bassert_config()
+       macro configures the GPIO for output, and makes note of the I/O port 
+       and bit for the LED outputs.
 
-       Routine bassert_config0() may be used instead, if the programmer
-       has already configured the GPIO as an output in his own code.
+       Routine bassert_config0() may be used instead, when the programmer
+       has already configured the GPIO as an output in his own code. This
+       routine simply notes the I/O port and GPIO bit to use for the LED.
 
        The bassert_blink() function blinks the LED n times and returns. 
        This function is invoked by blink_assert(), from a forever loop.
