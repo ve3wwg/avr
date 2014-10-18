@@ -41,8 +41,10 @@ void blink_abort();
 
 #ifndef NDEBUG
 #define blink_assert(assertion,blinks) { if ( !(assertion) ) for(;;) bassert_blink(blinks); }
+#define blink_cabort() blink_abort()
 #else
 #define blink_assert(assertion,blinks)
+#define blink_cabort()
 #endif
 
 
