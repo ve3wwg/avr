@@ -15,6 +15,7 @@ main() {
 	blink_assert(1==1,6);			/* This should pass ok */
 	blink_assert(1==0,5);			/* This should trigger */
 
+	blink_exit(0);
 	return 0;
 }
 

@@ -8,6 +8,16 @@ SYNOPSIS
 
        #include <blinkassert.h>
 
+       /* Assumes GPIO already configured for output */
+
+       void bassert_config0(
+         volatile uint8_t *portx,   /* Port register, e.g. &PORTB */
+         unsigned bit,              /* GPIO bit (0-7) of the port */
+         unsigned active_high       /* 0 = active low, else active high */
+       );
+
+       /* Configures GPIO for output */
+
        void bassert_config(
          volatile uint8_t *ddrx,    /* DDR register, e.g. &DDRB */
          volatile uint8_t *portx,   /* Port register, e.g. &PORTB */
@@ -15,9 +25,18 @@ SYNOPSIS
          unsigned active_high       /* 0 = active low, else active high */
        );
 
+       /* Assertion test macro */
+       void blink_assert(scalar expression, n);
+
+
+       /* Blink n times and return */
        void bassert_blink(unsigned n);
 
-       void blink_assert(scalar expression, n);
+       /* Blinking exit(2) routing */
+       void blink_exit(unsigned rc);
+
+       /* Blinking abort(2) routine */
+       void blink_abort();
 
 DESCRIPTION
 
@@ -46,8 +65,21 @@ DESCRIPTION
        bassert_config() macro not only configures the GPIO bit for output,
        but informs the bassert_blink() function of the GPIO to be used.
 
+
        The bassert_blink() function blinks the LED n times and returns. 
        This function is invoked by blink_assert(), from a forever loop.
+       If n is provided as zero, the LED remains on without blinking.
+
+
+       Function blink_exit() repeatedly blinks one long LED on followed 
+       by a short off period. Otherwise the LED blinks as if
+       bassert_blink(n) was called, where n > 0.
+
+       In contrast, abort() repeatedly flashes the LED on briefly, followed
+       by a long off period. This gives an appearance of a repeated brief 
+       flash, indicating a general abort.
+
+       Functions blink_exit() and blink_abort() do not return to the caller.
 
 RETURN VALUE
 
