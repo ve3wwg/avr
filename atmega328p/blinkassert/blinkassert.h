@@ -23,25 +23,28 @@ void bassert_config(volatile uint8_t *ddrx,volatile uint8_t *portx,unsigned bit,
 /* Blink n times and return */
 void bassert_blink(unsigned n);
 
-
-/*
- * Assertion Macro
- */
-#ifndef NDEBUG
-#define blink_assert(assertion,blinks) { if ( !(assertion) ) for(;;) bassert_blink(blinks); }
-#else
-#define blink_assert(assertion,blinks)
-#endif
-
-
 void blink_exit(unsigned rc);
 void blink_abort();
+
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* BLINKASSERT_H_ */
+
+
+/*
+ * Assertion Macro
+ */
+#undef blink_assert	/* Allow this to be redefined */
+
+#ifndef NDEBUG
+#define blink_assert(assertion,blinks) { if ( !(assertion) ) for(;;) bassert_blink(blinks); }
+#else
+#define blink_assert(assertion,blinks)
+#endif
+
 
 /*********************************************************************
  * End blinkassert.h
