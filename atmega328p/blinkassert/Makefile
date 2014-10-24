@@ -59,7 +59,7 @@ clean:
 clobber: clean
 	rm -f *.elf *.hex simul.out .errs.t *.list
 
-disasm:	8x8reg.elf
-	avr-objdump -d 8x8reg.elf
+disasm:	testmain.elf
+	avr-objdump -d testmain.elf
 
 # End
