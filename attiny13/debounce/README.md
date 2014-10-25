@@ -17,15 +17,15 @@ routines):
 
 INSTRUCTIONS:
 
-$ make
+    $ make
 
 will compile all hex files (some Makefile adjustment may be required for your
 AVR programmer).
 
-$ make flash-pb1 
+    $ make flash-pb1 
 
 will flash simplepb1.S, while:
 
-$ make flash-pb4
+    $ make flash-pb4
 
 will flash togglepb4.S etc.
