@@ -30,3 +30,14 @@ Example 3:
     signal to the main program that a new conversion result is 
     available. The main program then only has to check the SRAM
     flag and display the saved ADC value when the flag is set.
+
+Example 4:
+
+    Example 4 builds further on example 3, by using Timer/Counter0
+    to trigger the interrupt driven ADC. Timer 0 is configured to
+    interrupt in CTC mode, interrupting when Output Compare Count A
+    matches. While the Timer 0 ISR is not used, it is coded as an
+    example. Timer 0 Output Compare A simultaneously starts the
+    ADC peripheral, resulting in precise interval measurements,
+    which are displayed on the LEDs in the main loop.
+    

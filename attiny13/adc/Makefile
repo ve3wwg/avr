@@ -53,7 +53,7 @@ AS	= avr-as
 	avr-objcopy -j .text -j .data -O ihex $< $@
 	avr-size --format=avr --mcu=$(DEVICE) $<
 
-all:	example1.hex example2.hex example3.hex
+all:	example1.hex example2.hex example3.hex example4.hex
 
 example1.elf: example1.o
 	$(CC) example1.o -o example1.elf
@@ -64,9 +64,10 @@ example2.elf: example2.o
 example3.elf: example3.o
 	$(CC) example3.o -o example3.elf
 
-example1.o: Makefile
+example4.elf: example4.o
+	$(CC) example4.o -o example4.elf
 
-flash:	flash1
+example1.o: Makefile
 
 flash1:	example1.hex
 	$(AVRDUDE) -U flash:w:example1.hex:i
@@ -76,6 +77,9 @@ flash2:	example2.hex
 
 flash3:	example3.hex
 	$(AVRDUDE) -U flash:w:example3.hex:i
+
+flash4:	example4.hex
+	$(AVRDUDE) -U flash:w:example4.hex:i
 
 readfuse:
 	$(AVRDUDE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
