@@ -22,7 +22,7 @@
 ; This program demonstrates how to:
 ;
 ; 1. Configure the ADC for polled operation
-; 2. Request the ADC conversion (sbi ADCSRA,ADSC)
+; 2. Request the ADC conversion (sbi ADCSRA,ADSC only once)
 ; 3. Read the results from ADCL and ADCH
 ; 4. Shift and display the uppermost bits on the LEDs
 ;---------------------------------------------------------------------
