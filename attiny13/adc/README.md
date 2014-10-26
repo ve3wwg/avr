@@ -15,3 +15,9 @@ Example 1:
     Turning the pot from off to full on, will cycle the LEDs from 
     displaying the value zero (all off) to 0xF (all on).
 
+Example 2:
+
+    Example 2 uses the ADC in "free running" mode. Example 1 starts
+    the ADC as part of the main loop. Example 2 starts the ADC once
+    immediately after configuration. From that point on, it only has 
+    to check for completion from that point forward.
