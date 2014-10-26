@@ -126,7 +126,7 @@ main:	ldi	r16,_BV(PB3)|_BV(PB2)|_BV(PB1)|_BV(PB0)
 ;
 	lds	r16,ADC4b	; Load saved ADC value (4-bits)
 	clr	r17
-	sts	ADC4b,r17	; Clear flag (mark as processed)
+	sts	ADC4f,r17	; Clear flag (mark as processed)
 ;
 ;	Output bits to LEDs
 ;
