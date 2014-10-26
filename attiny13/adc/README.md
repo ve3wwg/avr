@@ -21,3 +21,12 @@ Example 2:
     the ADC as part of the main loop. Example 2 starts the ADC once
     immediately after configuration. From that point on, it only has 
     to check for completion from that point forward.
+
+Example 3:
+
+    Example 3 expands on example 2, by making it interrupt driven.
+    The interrupt service routine reads the ADC result and deposits
+    the ADC result into SRAM. The ISR also sets a flag in SRAM to
+    signal to the main program that a new conversion result is 
+    available. The main program then only has to check the SRAM
+    flag and display the saved ADC value when the flag is set.
