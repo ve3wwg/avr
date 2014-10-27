@@ -1,5 +1,5 @@
 ;---------------------------------------------------------------------
-; Example 4 : Timer triggered, interrupt driven ADC
+; Example 5 : Timer triggered, interrupt driven ADC, with watchdog
 ;
 ; Warren W. Gay VE3WWG	Mon Oct 27 20:51:33 2014
 ; GPL v2 License (See file LICENSE)
@@ -207,5 +207,5 @@ main:	ldi	r16,_BV(PB3)|_BV(PB2)|_BV(PB1)|_BV(PB0)
 	rjmp	1b		; Start next conversion
 
 ;---------------------------------------------------------------------
-; End example4.S
+; End example5.S
 ;---------------------------------------------------------------------
