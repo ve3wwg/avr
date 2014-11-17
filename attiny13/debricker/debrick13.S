@@ -19,6 +19,7 @@
 ;   ---------   -----------------
 ;   PD0/2   -   DUT /RESET (DUT pin 1)
 ;   PD1/3   -   Serial Clock Input (DUT pin 2)
+;   PD2/6   -   Serial Data In (DUT SDO pin)
 ;   PD3/7   -   Serial Instruction Input (DUT pin 6) 
 ;   PD4/8   -   Serial Data Input (DUT pin 5)
 ;   PD5/9   -   Vcc (DUT pin 8)
