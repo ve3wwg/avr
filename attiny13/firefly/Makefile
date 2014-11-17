@@ -21,6 +21,8 @@ PROGRAMMER = -c usbasp -F -B 1
 OPTZ	   = -Os $(DEFNS)
 DEFNS	   = -DSIM=$(SIM)
 
+INCL	= -I/usr/local/include/simavr
+
 .SUFFIXES: .hex .elf
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(PRGDEV)
@@ -30,7 +32,7 @@ CXX	= avr-g++ -Wall $(OPTZ) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 AS	= avr-as
 
 .c.o:
-	$(CC) -c $< -o $@
+	$(CC) $(INCL) -c $< -o $@
 
 .cpp.o:
 	$(CXX) -c $(OPTS) $< -o $@
@@ -51,6 +53,9 @@ all:	firefly.hex
 firefly.elf: firefly.o
 	$(CC) firefly.o -o firefly.elf
 
+firefly_trace.elf: firefly.o trace.o
+	$(CC) -Wl,--undefined=_mmcu,--section-start=.mmcu=0x910000 firefly.o trace.o -o firefly_trace.elf
+
 firefly.o: Makefile firefly.S
 
 flash:	all
@@ -63,7 +68,8 @@ readfuse:
 	$(AVRDUDE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
 
 clean:
-	rm -f *.o
+	rm -f *.o firefly.vcd
+	rm -f .simavr_pid sim.out firefly.vcd
 
 clobber: clean
 	rm -f *.elf *.hex simul.out .errs.t
@@ -74,11 +80,20 @@ disasm:	firefly.elf
 backup: clobber
 	cd .. && tar -cvzHf firefly.tar.gz --exclude include firefly
 
+#
+#	Debug with simavr
+#
 gdb:	firefly.elf
-	simulavr -g -d $(SIMDEV) firefly.elf 1>simul.out 2>&1 & echo $$! >simulavr.pid
-	avr-gdb
-	@ps -fp $$(cat simulavr.pid)
-	kill $$(cat simulavr.pid)
-	@rm -f simulavr.pid simul.out
+	simavr -g -f 8000000 -m attiny13a firefly.elf 1>sim.out 2>&1 & echo $$! >.simavr_pid
+	@ps -fp $$(cat .simavr_pid)
+	@sleep 3
+	avr-gdb -x gdb.simavr
+	@kill $$(cat .simavr_pid)
+
+#
+#	Simulate firefly without using avr-gdb
+#
+trace:	firefly_trace.elf
+	simavr firefly_trace.elf
 
 # End
