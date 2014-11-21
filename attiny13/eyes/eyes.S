@@ -8,11 +8,18 @@
 ; This code is designed to drive a pair of eye LEDs for an owl on the
 ; wall. The eyes fade to bright and then fade away slower to dark,
 ; about once a minute. A 3V CR2032 battery should last about a year.
-; The sleep current is about 4 uA.
+; The sleep current is about 4 uA (for ATtiny13A).
 ;
 ; While driving two LEDs, this code alternates between the two, to
 ; futher save power. The human eye will perceive both LEDs as being
-; lit, but only one is ever on at any one instant.
+; lit, but only one is ever on at any one instant. This also permits
+; the two LEDs to share one limiting resistor.
+;
+; /RESET: If you flash the fuse bytes with "make finalflash", the
+; reset pin is configured as an I/O port, so that the internal 
+; pullup resistor can be used (saving the builder from having to
+; provide an external one). The pullup resistors are disabled during
+; sleep time, to reduce current draw.
 ;---------------------------------------------------------------------
 
 #define __SFR_OFFSET 0 
@@ -24,7 +31,6 @@
 	.global	main, WDT_vect
 
 	.data
-
 sleepc:	.byte			; Sleep count, before wakeup
 
 ;
@@ -72,8 +78,8 @@ wdreset:cli
 	.text
 main:	clr	r16
 	out	DDRB,r16	; Set all ports to input
-	ldi	r17,0b011100	; PB4..PBN2 have pullups on
-	out	PORTB,r17	; Turn off all pull resistors
+	ldi	r17,0b0111100	; PB5..PB2 have pullups on
+	out	PORTB,r17	; Turn off all pullup resistors
 ;
 	sbi	DDRB,PB1	; Left eye, output
 	sbi	DDRB,PB0	; Right eye, output
@@ -181,6 +187,11 @@ mloop:	ldi	r18,1
 
 	sbi	DDRB,PB1	; Make eye ports outputs again
 	sbi	DDRB,PB0
+
+	in	r16,MCUCR
+	cbr	r16,_BV(PUD)	; Enable all pullup resistors
+	out	MCUCR,r16	; Disable all pullup resistors
+
 	rjmp	mloop
 
 ;---------------------------------------------------------------------
