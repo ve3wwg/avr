@@ -53,14 +53,23 @@ eyes.elf: eyes.o
 
 eyes.o: Makefile
 
+#
+# Flash the device without setting the fuse bytes. Use this for experimenting
+#
 flash:	eyes.hex
-	$(AVRDUDE) -U flash:w:eyes.hex:i
+	$(AVRDUDE) -U flash:w:eyes.hex:i 
+
+#
+# Use this prior to building. This flash sets the fuse bits so that the /RESET
+# input is an I/O pin. This allows the software to use an internal pullup 
+# resistor, so that no external one is required. This will effectively "brick"
+# the device, unless you have a 12V programmer (or the "debricker")
+#
+finalflash: eyes.hex
+	$(AVRDUDE) -U flash:w:eyes.hex:i -U lfuse:w:0x6a:m -U hfuse:w:0xfe:m
 
 readfuse:
 	$(AVRDUDE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
-
-wfuse:
-	$(AVRDUDE) -U lfuse:w:0x6b:m
 
 clean:
 	rm -f *.o
