@@ -13,9 +13,9 @@
 ; Configure These
 ;---------------------------------------------------------------------
 
-#define	DDRX	DDRB
-#define	PORTX	PORTB
-#define	PBX	PB0
+DDRX	= DDRB
+PORTX	= PORTB
+PBX	= PB0
 
 	.text
 	.global	tx8x8,init8x8
@@ -47,6 +47,22 @@ one:	sbi	PORTX,PBX	; Put signal High
 ;---------------------------------------------------------------------
 init8x8: sbi	DDRX,PBX	; Set pin as output
 	sbi	PORTX,PBX	; Set line idle high
+
+	sbi	DDRX,PB1
+	cbi	PORTX,PB1	; Apply /RESET
+	nop
+	sbi	PORTX,PB1	; Release /Reset
+
+	sbi	DDRX,PB5	; LED
+	sbi	PORTX,PB5
+
+	ldi	r20,255
+1:	rcall	txdelay
+	dec	r20
+	brne	1b
+
+	cbi	PORTX,PB5
+
 	ret
 
 ;---------------------------------------------------------------------
@@ -78,27 +94,10 @@ tx8x8:	rcall	txdelay		; Delay one complete
 	ret
 
 ;---------------------------------------------------------------------
-; Calculate a delay > 645 us for the given CPU freq F_CPU
-;---------------------------------------------------------------------
-
-; If F_CPU is not given, then assume 8 MHz
-#ifndef F_CPU
-#define F_CPU	8000000
-#endif
-
-; Calculate the number of outer iterations (minimum 1)
-
-#define NITER	F_CPU/1400000
-#if NITER < 1
-#undef NITER
-#define NITER	1
-#endif
-
-;---------------------------------------------------------------------
 ; Delay approx 645+ us (depends upon calculated NITER)
 ;---------------------------------------------------------------------
 
-txdelay: ldi	r18,NITER	; How many times to iterate?
+txdelay: ldi	r18,(F_CPU/4000000)%256	; How many times to iterate?
 2:	clr	r17		; Zero for maximum time wastage
 1:	dec	r17		; Iterate for 256 x 2 cycles
 	brne	1b
