@@ -11,21 +11,17 @@ ifeq ($(DEVICE),attiny13a)
 PRGDEV	?= attiny13
 endif
 
-PRGDEV	?= $(DEVICE)
+F_CPU	?= 8000000
 
-ifeq ($(SIM),1)
-DEVICE = atmega128
-SIMDEV = atmega128
-PRGDEV = none
-endif
+PRGDEV	?= $(DEVICE)
 
 PGBAUD     = 115200
 
 PROGRAMMER = -c usbasp -F -B 1
 
-OPTZ	   = -Os $(DEFNS)
-DEFNS	   = -DSIM=$(SIM)
-COPTS	   = $(OPTZ)
+OPTZ	   = -Os -g
+DEFNS	   = -DF_CPU=$(F_CPU)
+COPTS	   = $(OPTZ) $(DEFNS)
 
 .SUFFIXES: .hex .elf
 
@@ -38,7 +34,7 @@ AS	= avr-as
 	$(CC) -c $(COPTS) $< -o $@
 
 .S.o:
-	$(CC) -x assembler-with-cpp -c -g $(DEFNS) $< -o $@ -Wa,-a=$*.list
+	$(CC) -x assembler-with-cpp -c $(COPTS) $< -o $@ -Wa,-a=$*.list
 
 .c.s:
 	$(CC) -S $< -o $@
