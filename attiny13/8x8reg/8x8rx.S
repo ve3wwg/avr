@@ -22,49 +22,41 @@
 	.global	main
 	.global	TIM0_COMPA_vect
 
-; Timer0 Prescaler
-#define	PRESCALE	1
+;---------------------------------------------------------------------
+; Configurable Items
+;---------------------------------------------------------------------
 
-; Counter match value
-#define	OCR0A_COUNT	10
+PRESCALE	= 1	; Timer0 Prescaler (1 = no prescale)
 
-; Matrix Brightness Level
-#define BRIGHTNESS	0x01
+#if F_MCU >= 8000000
+OCR0A_COUNT	= 170	; Counter match value for 8 MHz MCU
+#else
+OCR0A_COUNT	= 245	; Counter match value for 4 Mhz MCU
+#endif
+
+BRIGHTNESS	= 0x01	; Matrix Brightness Level
 
 ;---------------------------------------------------------------------
 ; Manchester Data Input 
 ;---------------------------------------------------------------------
 
-; Manchester Data In Pin
-#define MCHDIN		PB0
-
-; Manchester Port for MCHDIN
-#define IPORTX		PINB
-
-; Must have 4 bits in agreement
-#define MCHBMASK	0x0F
-
-; Count of bits in MCHBMASK
-#define MCHBCOUNT	4
-
-; Data bits to receive 4 + 8 bits
-#define	dbits		12
+MCHDIN		= PB0	; Manchester Data In Pin
+IPORTX		= PINB	; Manchester Port for MCHDIN
+dbits		= 12	; Data bits to receive 4 + 8 bits
 
 ;---------------------------------------------------------------------
 ; Matrix LED outputs
 ;---------------------------------------------------------------------
 
-; Output pins
-#define DDRX		DDRB
-#define PORTX		PORTB
+DDRX		= DDRB
+PORTX		= PORTB
 
 ; Outputs
-#define CLK		PB4
-#define DIN		PB2
-#define LOAD		PB3
 
-; Fault LED
-#define FLED		PB1
+CLK		= PB4	; Output to matrix clock input
+DIN		= PB2	; Output to matrix data input
+LOAD		= PB3	; Output to matrix CS/Load input
+FLED		= PB1	; Fault LED
 
 ;---------------------------------------------------------------------
 ; Other register allocations
@@ -75,9 +67,9 @@
 #define ARG2		r17
 
 ; Main routine temps
-#define	TMP		r20
+#define TMP		r20
 #define TM2		r21
-#define	DTMP		r22
+#define DTMP		r22
 
 ; ISR Timer Count
 #define	counterl 	r5
@@ -120,10 +112,8 @@
 
 	.equiv	FAULT01,0xF1	; Start 0-bit high period too short
 	.equiv	FAULT03,0xF3	; Timed out on 0-bit low period
-	.equiv	FAULT04,0xF4	; High came too soon for 0-bit
 	.equiv	FAULT05,0xF5	; Data 0-bit ended too soon
 	.equiv	FAULT06,0xF6	; Data 1-bit timed out during high period
-	.equiv	FAULT07,0xF7	; Data 1-bit low came too soon
 	.equiv	FAULT08,0xF8	; Data 1-bit low to high came too soon
 
 ;---------------------------------------------------------------------
@@ -170,19 +160,6 @@ tcompr:	mov	r0,rxtimel
 	ret
 
 ;---------------------------------------------------------------------
-; Test if the counter is less than 1/2 of T (rxtimet)
-;---------------------------------------------------------------------
-
-thalf:	mov	r0,rxtimel
-	mov	r1,rxtimeh
-	lsr	r1
-	ror	r0		; r1:r0 /= 2
-
-	cp	r0,counterl
-	cpc	r1,counterh	; r1:r0 < r17:r16  ?
-	ret
-
-;---------------------------------------------------------------------
 ; Test if time T has passed
 ;---------------------------------------------------------------------
 
@@ -196,25 +173,12 @@ wtime:	mov	r16,rxtimel
 1:	ret
 
 ;---------------------------------------------------------------------
-; Expect Signal Low, High
-;---------------------------------------------------------------------
-
-getlo:	mov	r16,mdin
-	andi	r16,0x0F
-	ret
-
-gethi:	mov	r16,mdin
-	com	r16
-	andi	r16,0x0F
-	ret
-
-;---------------------------------------------------------------------
 ; READY State - Wait High to Low transition for start of 1st 0-bit
 ;---------------------------------------------------------------------
 
-jready:	rcall	getlo		; See if we got a Low Siganl
-	breq	2f
-	ret
+jready:	tst	mdin		; See if we got a Low Siganl
+	breq	2f		; Branch if low
+	ret			; Else no change
 
 2:	ldi	r16,dbits
 	mov	bcount,r16	; 1 + 12 bits to receive
@@ -229,8 +193,8 @@ jready:	rcall	getlo		; See if we got a Low Siganl
 ; Wait for low to high transition for 1st 0-bit
 ;---------------------------------------------------------------------
 
-j1st0:	rcall	gethi
-	breq	2f		; Branch if got high
+j1st0:	tst	mdin
+	brne	2f		; Branch if got high
 	ret
 
 2:	mov	rxtimel,counterl ; Capture timer:
@@ -243,14 +207,11 @@ j1st0:	rcall	gethi
 ; Wait for 2nd half of 0-bit (during high)
 ;---------------------------------------------------------------------
 
-j1st0b:	rcall	getlo
-	breq	1f		; Got a low, so advance state (start of next 0-bit)
+j1st0b:	tst	mdin
+	breq	2f		; Start data 0-bit
 	rcall	wtime		; Wait for 2nd half of 0-bit (high period)
 	brcs	2f		; Start data 1-bit
 	ret			; Signal still high
-
-1:	rcall	thalf		; Did elapsed time exceed 1/2T as expected?
-	brcc	3f		; Branch if transition came too soon
 
 2:	ldi	r16,SDBIT	; State - start of data bit
 	rjmp	rchstate	; Clear counter and change state
@@ -266,17 +227,13 @@ fail:
 ; Low -> collect 0-bit  else  High -> collect 1-bit
 ;---------------------------------------------------------------------
 
-jdbit:	rcall	getlo		; Stable low = 0xX0
+jdbit:	tst	mdin
 	breq	2f		; Signal went low 
-	cpi	r16,0x0F	; Stable high - 0xXF
-	breq	3f		; Signal went high
-	ret
+	ldi	r16,SDBIT1	; Collect a 1-bit
+	rjmp	chstate		; Try to collect a one bit
 
 2:	ldi	r16,SDBIT0	; Collect a 0-bit
 	rjmp	chstate		; Try to collect a zero bit
-
-3:	ldi	r16,SDBIT1	; Collect a 1-bit
-	rjmp	chstate		; Try to collect a one bit
 
 ;---------------------------------------------------------------------
 ; Collect a zero bit (first half - at low level)
@@ -286,19 +243,13 @@ jdbit:	rcall	getlo		; Stable low = 0xX0
 fail03:	ldi	r16,FAULT03	; Timed out on 0-bit low period
 	rjmp	fail
 
-fail04:	ldi	r16,FAULT04	; High came too soon for zero bit
-	rjmp	fail
-
-jdbit0:	rcall	gethi		; Wait for transition to high
-	breq	1f		; Branch if we see High
+jdbit0:	tst	mdin		; Wait for transition to high
+	brne	1f		; Branch if we see High
 	rcall	tcompr		
 	brcs	fail03		; Timed out on 0-bit low period
 	ret
 
-1:	rcall	thalf
-	brcc	fail04		; Level change came too soon
-
-	ldi	r16,SDBIT0B	; Now wait out 2nd half
+1:	ldi	r16,SDBIT0B	; Now wait out 2nd half
 	rjmp	rchstate	; wait out 2nd half
 
 ;---------------------------------------------------------------------
@@ -309,14 +260,11 @@ jdbit0:	rcall	gethi		; Wait for transition to high
 fail05:	ldi	r16,FAULT05	; 0-bit ended too soon
 	rjmp	fail
 
-jdbit0b: rcall	getlo		; Wait for transition to low
-	breq	2f		; Branch if signal went low
+jdbit0b: tst	mdin		; Wait for transition to low
+	breq	3f		; Branch if signal went low
 	rcall	wtime
 	brcs	3f		; Else stop waiting at T
 	ret
-
-2:	rcall	thalf
-	brcc	fail05		; Level change came too soon
 
 3:	clt			; T=0
 
@@ -340,18 +288,13 @@ dfin:	lsl	datal		; Shift data regs left
 fail06:	ldi	r16,FAULT06	; 1-bit Timed out waiting for low
 	rjmp	fail
 
-fail07:	ldi	r16,FAULT07	; 1-bit low came too soon
-	rjmp	fail
-
-jdbit1:	rcall	getlo		; Wait for transition to low
+jdbit1:	tst	mdin		; Wait for transition to low
 	breq	1f		; Branch if we got low
 	rcall	tcompr
 	brcs	fail06		; Fail: timed out
 	ret
 
-1:	rcall	thalf
-	brcc	fail07		; Transition too soon (fail)
-	ldi	r16,SDBIT1B	; Wait out 2nd half
+1:	ldi	r16,SDBIT1B	; Wait out 2nd half
 	rjmp	rchstate
 
 ;---------------------------------------------------------------------
@@ -361,14 +304,12 @@ jdbit1:	rcall	getlo		; Wait for transition to low
 fail08:	ldi	r16,FAULT08	; 1-bit low to high too soon
 	rjmp	fail
 
-jdbit1b: rcall	gethi		; Wait for a transition to high
-	breq	2f		; Branch if line gone high
+jdbit1b: tst	mdin		; Wait for a transition to high
+	brne	3f		; Branch if line gone high
 	rcall	wtime
 	brcs	3f		; Expiry of time T
 	ret
 
-2:	rcall	thalf		; Check time to transition
-	brcc	fail08		; Fail if transition occurred too soon
 3:	set			; T=1
 	rjmp	dfin
 
@@ -376,8 +317,8 @@ jdbit1b: rcall	gethi		; Wait for a transition to high
 ; Wait until line = High
 ;---------------------------------------------------------------------
 
-jwaith:	rcall	gethi		; Check if stable line high
-	breq	1f
+jwaith:	tst	mdin		; Check if stable line high
+	brne	1f
 	ret			; Stay in current state
 
 1:	ldi	r16,SREADY
@@ -407,6 +348,9 @@ rchstate:
 	clr	counterl
 	clr	counterh	; counter = 0
 chstate: mov	rxstate,r16	; Change to state in r16
+
+;	sbi	PINB,FLED
+
 	ret
 
 jfault:	ret
@@ -432,15 +376,14 @@ jmptab:	rjmp	jready		; 0 : Ready
 ;---------------------------------------------------------------------
 
 TIM0_COMPA_vect:
-
 	push	r16		; r16
 	in	r16,SREG	; 
 	push	r16		; SREG
 	push	r17		; r17
 
-	lsl	mdin		; Shift in 1 more signal input sample
-	sbic	IPORTX,MCHDIN	; Skip if input low
-	inc	mdin
+	clr	mdin		; mdin = 0
+	sbic	IPORTX,MCHDIN	; Test if MCHDIN is set
+	inc	mdin		; mdin = 1
 
 	lds	r16,fault	; Don't change counter if faulted
 	andi	r16,0xF0
@@ -614,8 +557,8 @@ rxinit:	sbi	DDRX,DIN	; Configure DIN as output
 	clr	counterh	; Counter = 0
 
 	clr	mdin
-	sbic	PINB,MCHDIN	; Test input line level
-	inc	mdin		; Set to 1 if MCHDIN = high
+;	sbic	PINB,MCHDIN	; Test input line level
+;	inc	mdin		; Set to 1 if MCHDIN = high
 
 	ldi	rxstate,SWAITH	; Initial rxstate = SWAITH
 
@@ -745,8 +688,8 @@ dloop:	rcall	udisp		; Display loop
 ;   Zero Bit          |<-----(0)---->|
 ;   One Bit                          |<----(1)---->|
 ;                       F1-^   F3-^
-;                          F4-^     ^-F5 (when followed byte a high-low transition here)
-;                                       F7-^  ^-F6 (when low transition fails to arrive on time)
+;                                   ^-F5 (when followed byte a high-low transition here)
+;                                             ^-F6 (when low transition fails to arrive on time)
 ;                                                  ^-F8
 ;	                   
 ;---------------------------------------------------------------------
