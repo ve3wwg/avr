@@ -7,39 +7,37 @@ using the MAX7219 chip. This is a "utility" project, designed to display
 
 The data is sent to the '13 on one wire using a Manchester biphase
 encoded signal. 12 bits are sent: 4 bits selecting a zero-based row
-(0-7), and 8 bits of LED data.
+(0-7), and 8 bits of LED data (row 8 is the intensity register).
 
 Debugging ATtinys can be difficult, especially in assembly language.
-This project is designed to allow your code in another Tiny send data to
-be displayed using only one output pin. In this way, you can display up
-to 64 bits of information, or 8 bytes worth on an 8x8 matrix external
+This project is designed to allow your code in another Tiny to send data
+to be displayed using only one output pin. In this way, you can display
+up to 64 bits of information, or 8 bytes worth on an 8x8 matrix external
 to the MCU being debugged.
 
-In addition to only requiring one output pin, SENDING Manchester biphase
+In addition to only requiring one output pin, sending Manchester biphase
 is very easy to bit bang out of the sending host, using a minimum of
-code (and thus not disrupt the environment being debugged too much).
-See tx8x8.S/tx8x8.h files for source code (and test program testmain.c).
+code (and thus not disrupt the environment being debugged). See the
+include file tx8x8.S and tx8x8.h files for source code. There is also 
+an example test program testmain.c.
 
 Once the receiver and matrix are built into some kind of utility
 cabinet, you only need to link your ATtiny* being debugged with a small
 sending routine. Then make calls to it, whenever you want a byte
 displayed on a particular row of the destination matrix. All this
-happens using one wire from the host to the matrix.
+happens using one wire (and ground).
 
 The receiver is designed to receive signals at varying speeds. The
-receiver expects one initial zero bit, which is used as a start bit
-after the line sits idle (high). The zero bit is timed, so that the
-receiver knows how long each half bit time is. From this, the receiver
-can adapt to any reasonable sending rate. The rate must be consistent
-within the frame being sent.
+receiver expects one initial zero bit, which is used as a start bit.
+The zero bit is timed, so that the receiver can adapt. The rate 
+should be consistent, but some slop is tolerated.
 
 Should the sending signal be too irregular to be received, the matrix
-will display a fault code and other trace information. See the end
-of the module 8x8rx.S for more details about fault codes.
+will display light the fault LED briefly (long enough to be seen).
 
 While the receiver is flexible, extremely slow signals will overflow
 its counters and fault. Likewise, if you attempt to send the signal
-too quickly, the receiver's state machine will not keep up and 
+too fast, the receiver's state machine will not keep up and 
 generate a fault also.
 
 RECEIVER:
@@ -62,6 +60,9 @@ PB5 - Input: /RESET
 
 TRANSMITTING DEMO:
 ------------------
+
+This sending demo assumes an ATmega328P using a USB Boarduino. Adjust the
+Makefile.send to suit your test equipment.
 
 1. make -f Makefile.send (builds testmain.c tx8x8.S into testmain.hex)
 2. make -f Makefile.send flash (upload - assumes USB Boarduino, sending on PB0)
