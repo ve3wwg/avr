@@ -76,6 +76,7 @@ init8x8: sbi	DDRX,PBX	; Set pin as output
 
 tx8x8:	rcall	txdelay		; Delay one complete
 	rcall	txdelay		;   bit cell
+	rcall	txdelay		;    and a third for synch
 	rcall	zero		; Start with a zero bit
 
 	ldi	r19,12		; 4 + 8 bits
@@ -98,8 +99,8 @@ tx8x8:	rcall	txdelay		; Delay one complete
 ;---------------------------------------------------------------------
 
 txdelay: ldi	r18,(F_CPU/4000000)%256	; How many times to iterate?
-2:	clr	r17		; Zero for maximum time wastage
-1:	dec	r17		; Iterate for 256 x 2 cycles
+2:	clr	r21		; Zero for maximum time wastage
+1:	dec	r21		; Iterate for 256 x 2 cycles
 	brne	1b
 	dec	r18		; Decrement NITER
 	brne	1b		; Until we hit zero
