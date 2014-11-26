@@ -4,13 +4,19 @@
 ; License: GPL v2 (see accompanying file LICENSE)
 ;
 ; With Fuses set to: H:FF, L:6A
-; The system starts with internal RC Osc at 9.6 MHz, divided by 8.
+; The system starts with internal RC Osc at ~ 8 MHz, divided by 8.
 ;
 ; After the main program sets the divisor to 1, the code runs at
-; 9.6 MHz (0.104 usec)
+; 8 MHz
 ;
-; Worst case ISR run is approx 64 cycles (~ 7 usec)
-; See further notes at the bottom.
+; Worst case ISR run is approx 64 cycles (~ 8 usec)
+;
+; DATA FORMAT:
+; MSB.....Data........LSB (12-bits, MSB first)
+; D D D D 7 6 5 4 3 2 1 0
+;
+; DDDD is values 0x00 to 0x07 to select a digit.
+;         Digit  0x08 selects intensity (values 0xX0 to 0xXF)
 ;---------------------------------------------------------------------
 
 #define __SFR_OFFSET 0 
@@ -104,39 +110,21 @@ FLED		= PB1	; Fault LED
 	.equiv	SDBIT1B,7	; One bit 2nd half (low)
 	.equiv	SRX,8		; Data bits received (process)
 	.equiv	SWAITH,9	; Wait signal High 
-	.equiv	SFAULT,10	; Input signal Fault occurred
-
-;---------------------------------------------------------------------
-; Fault codes
-;---------------------------------------------------------------------
-
-	.equiv	FAULT01,0xF1	; Start 0-bit high period too short
-	.equiv	FAULT03,0xF3	; Timed out on 0-bit low period
-	.equiv	FAULT05,0xF5	; Data 0-bit ended too soon
-	.equiv	FAULT06,0xF6	; Data 1-bit timed out during high period
-	.equiv	FAULT08,0xF8	; Data 1-bit low to high came too soon
 
 ;---------------------------------------------------------------------
 ; Data storage
 ;---------------------------------------------------------------------
-	.data
 
-byte0:	.byte	0		; For byte 0 of the matrix
-byte1:	.byte	0
-byte2:	.byte	0
-byte3:	.byte	0
-byte4:	.byte	0
-byte5:	.byte	0
-byte6:	.byte	0
-byte7:	.byte	0		; Byte 7 of the matrix
-fault:	.byte	0		; Fault value 
+	.section .bss
+byte0:	.fill	8		; 8 Byte buffer for display
+intens:	.fill	1		; Display intensity (default 1)
+fault:	.fill	1		; Fault tick count else zero
 
 ;---------------------------------------------------------------------
 ; Right shift (divide by 4) r1:r0
 ;---------------------------------------------------------------------
 
 	.text
-
 divby4:	lsr	r1
 	ror	r0
 	lsr	r1
@@ -216,10 +204,14 @@ j1st0b:	tst	mdin
 2:	ldi	r16,SDBIT	; State - start of data bit
 	rjmp	rchstate	; Clear counter and change state
 
-3:	ldi	r16,FAULT01	; 1st 0-bit high period too short
-fail:
-4:	sts	fault,r16	; Save fault code
-	ldi	r16,SFAULT	; Change to fault state
+;---------------------------------------------------------------------
+; Turn on Fault LED and reset state
+;---------------------------------------------------------------------
+
+fail:	ldi	r16,255
+	sts	fault,r16	; Clear fault LED after this count reaches zero
+	sbi	PORTX,FLED	; Turn on the fault LED
+	ldi	r16,SWAITH	; Recovery state
 	rjmp	chstate		; Change state without resetting counter
 
 ;---------------------------------------------------------------------
@@ -240,13 +232,10 @@ jdbit:	tst	mdin
 ; There must be a transition from low to high here.
 ;---------------------------------------------------------------------
 
-fail03:	ldi	r16,FAULT03	; Timed out on 0-bit low period
-	rjmp	fail
-
 jdbit0:	tst	mdin		; Wait for transition to high
 	brne	1f		; Branch if we see High
 	rcall	tcompr		
-	brcs	fail03		; Timed out on 0-bit low period
+	brcs	fail		; Timed out on 0-bit low period
 	ret
 
 1:	ldi	r16,SDBIT0B	; Now wait out 2nd half
@@ -256,9 +245,6 @@ jdbit0:	tst	mdin		; Wait for transition to high
 ; Wait out 2nd half of zero bit (level = high).
 ; This state ends with a transition to low, or expiry of time T
 ;---------------------------------------------------------------------
-
-fail05:	ldi	r16,FAULT05	; 0-bit ended too soon
-	rjmp	fail
 
 jdbit0b: tst	mdin		; Wait for transition to low
 	breq	3f		; Branch if signal went low
@@ -285,13 +271,10 @@ dfin:	lsl	datal		; Shift data regs left
 ; Here we must get the transition from high to low.
 ;---------------------------------------------------------------------
 
-fail06:	ldi	r16,FAULT06	; 1-bit Timed out waiting for low
-	rjmp	fail
-
 jdbit1:	tst	mdin		; Wait for transition to low
 	breq	1f		; Branch if we got low
 	rcall	tcompr
-	brcs	fail06		; Fail: timed out
+	brcs	fail		; Fail: timed out
 	ret
 
 1:	ldi	r16,SDBIT1B	; Wait out 2nd half
@@ -300,9 +283,6 @@ jdbit1:	tst	mdin		; Wait for transition to low
 ;---------------------------------------------------------------------
 ; Wait out 2nd half of 1-bit (while level low)
 ;---------------------------------------------------------------------
-
-fail08:	ldi	r16,FAULT08	; 1-bit low to high too soon
-	rjmp	fail
 
 jdbit1b: tst	mdin		; Wait for a transition to high
 	brne	3f		; Branch if line gone high
@@ -331,10 +311,12 @@ jwaith:	tst	mdin		; Check if stable line high
 
 jrx:	mov	ZL,datah
 	andi	ZL,0x0F		; Mask out lower 4 bits (digit #)
+	cpi	ZL,8+1		; 8 == Intensity
+	brcc	fail
+
 	ldi	r16,lo8(byte0)
 	add	ZL,r16
 	ldi	ZH,hi8(byte0)
-
 	st	Z,datal		; Save data byte to bytex
 
 	ldi	r16,SWAITH
@@ -348,12 +330,7 @@ rchstate:
 	clr	counterl
 	clr	counterh	; counter = 0
 chstate: mov	rxstate,r16	; Change to state in r16
-
-;	sbi	PINB,FLED
-
 	ret
-
-jfault:	ret
 
 ;---------------------------------------------------------------------
 ; State Jump Table
@@ -362,14 +339,13 @@ jfault:	ret
 jmptab:	rjmp	jready		; 0 : Ready
 	rjmp	j1st0		; 1 : Time low during 1st 0-bit
 	rjmp	j1st0b		; 2 : Wait for high to low
-	rjmp	jdbit		; 5 : Wait for data bit to stabilize
-	rjmp	jdbit0		; 6 : Wait for first half of zero bit
-	rjmp	jdbit0b		; 7 : Wait for 2nd half of zero bit
-	rjmp	jdbit1		; 8 : Wait for first half of one bit
-	rjmp	jdbit1b		; 9 : Wait for 2nd half of one bit
-	rjmp	jrx		; 10 : Received data
-	rjmp	jwaith		; 11 : Wait until signal = High
-	rjmp	jfault		; 12 : Signal Fault
+	rjmp	jdbit		; 3 : Wait for data bit to stabilize
+	rjmp	jdbit0		; 4 : Wait for first half of zero bit
+	rjmp	jdbit0b		; 5 : Wait for 2nd half of zero bit
+	rjmp	jdbit1		; 6 : Wait for first half of one bit
+	rjmp	jdbit1b		; 7 : Wait for 2nd half of one bit
+	rjmp	jrx		; 8 : Received data
+	rjmp	jwaith		; 9 : Wait until signal = High
 
 ;---------------------------------------------------------------------
 ; Timer 0 ISR Routine
@@ -386,11 +362,16 @@ TIM0_COMPA_vect:
 	inc	mdin		; mdin = 1
 
 	lds	r16,fault	; Don't change counter if faulted
-	andi	r16,0xF0
-	cpi	r16,0xF0
-	breq	rfault		; Jump to display fault
+	tst	r16
+	breq	1f		; Branch if no fault 
 
-	inc	counterl	; Normally, we increment our tick
+	dec	r16		; Decrement fault count
+	sts	fault,r16	; Save it
+	brne	1f		; Branch if fault not cleared yet
+
+	cbi	PORTX,FLED	; Turn off Fault LED
+
+1:	inc	counterl	; Normally, we increment our tick
 	brne	2f		;  counter
 	inc	counterh
 
@@ -405,22 +386,6 @@ TIM0_COMPA_vect:
 	pop	r16		; r16
 	reti
 	
-;---------------------------------------------------------------------
-; Report the details of the signal fault
-;---------------------------------------------------------------------
-
-rfault:	sbi	PORTX,FLED	; Turn on the Fault LED
-	sts	byte0,rxtimeh	; Receive timer high byte
-	sts	byte1,rxtimel	; Receive timer low byte
-	sts	byte2,counterh	; ISR counter high byte
-	sts	byte3,counterl	; ISR counter low byte
-	sts	byte4,datah	; Data high byte
-	sts	byte5,datal	; Data low byte
-	sts	byte6,bcount	; Bits remaining to be received
-	lds	r16,fault	; Fault code
-	sts	byte7,r16	;   displayed as byte 7
-	rjmp	8b
-
 ;---------------------------------------------------------------------
 ; Write the Carry bit out to the MAX7219 device
 ;---------------------------------------------------------------------
@@ -473,7 +438,18 @@ rxwrite:
 ; Update MAX7219 Matrix display
 ;---------------------------------------------------------------------
 
-udisp:	ldi	YL,lo8(byte0)
+udisp:	lds	ARG1,intens	; Has intensity been set?
+	bst	ARG1,7		; High bit on? (T)
+	brts	1f		; Yes, intensity has been set
+
+	ori	ARG1,0x80	; Mark as completed
+	sts	intens,ARG1	; Save as completed
+
+	andi	ARG1,0x0F	; Mask out all but low 4 bits
+	ldi	ARG2,9		; Intensity register (incremented to 0x0A)
+	rcall	rxwrite		; Transmit to matrix
+
+1:	ldi	YL,lo8(byte0)
 	ldi	YH,hi8(byte0)	; Y = Address byte0
 	clr	r24		; Digit
 	ldi	r23,8		; Count
@@ -543,6 +519,9 @@ rxinit:	sbi	DDRX,DIN	; Configure DIN as output
 1:	st	Y+,r0		; byte[Y+] = 0
 	dec	r16
 	brne	1b
+
+	ldi	r16,1
+	sts	intens,r16	; Initialize = 1
 
 ;---------------------------------------------------------------------
 ; Machester Receiver Initialization
@@ -654,44 +633,6 @@ dloop:	rcall	udisp		; Display loop
 ;	r30/Z	rxstate jmp + d store
 ;	r31/ZH	rxstate jmp + d store
 ;	
-; When the Fault LED Comes on:
-;	
-;     This happens when the input signal is:
-; 
-;     1) Too fast or too slow 
-;     2) Irregular in timing
-;     3) Not a biphase Manchester encoded signal
-; 
-; To diagnose the problem, the Fault LED indicates that the
-; display is reporting fault information. The 8x8 matrix,
-; displays bytes from  top to bottom as follows:
-; 
-; Display Lines:
-; 
-;     0) rxtime high byte
-;     1) rxtime low byte
-;     2) counter high byte
-;     3) counter low byte
-;     4) high data byte (received so far)
-;     5) low data byte
-;     6) Bits remaining to be received
-;     7) Fault Code 0xFx, where x is the code
-;
-; This is cleared by a RESET.
-;
-; Signal Format and Fault Codes:
-;	
-; ----/idle-high/-----+       +------/------+      +--/1/->
-;                     |       |             |      |
-;                     +-------+             +------+--/0/->
-;   Time rxtime       |<----->|
-;   Zero Bit          |<-----(0)---->|
-;   One Bit                          |<----(1)---->|
-;                       F1-^   F3-^
-;                                   ^-F5 (when followed byte a high-low transition here)
-;                                             ^-F6 (when low transition fails to arrive on time)
-;                                                  ^-F8
-;	                   
 ;---------------------------------------------------------------------
 ; End 8x8rx.S
 ;---------------------------------------------------------------------
