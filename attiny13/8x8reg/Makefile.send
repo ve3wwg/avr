@@ -11,7 +11,7 @@ F_CPU	?= 8000000
 PGBAUD  = 115200
 PGMBOARDUINO = -c arduino -P /dev/tty.usbserial-A6005XBY -B $(PGBAUD)
 
-OPTZ	= -Os $(DEFNS)
+OPTZ	= -Os
 DEFNS	= -DF_CPU=$(F_CPU)
 COPTS	= $(OPTZ) -std=gnu99
 
@@ -20,8 +20,8 @@ COPTS	= $(OPTZ) -std=gnu99
 AVRDUDE = avrdude $(PROGRAMMER) -p $(PRGDEV)
 BOARDUINO = avrdude $(PGMBOARDUINO) -p atmega328p
 
-CC	= avr-gcc -Wall $(OPTZ) -mmcu=$(DEVICE)
-CXX	= avr-g++ -Wall $(OPTZ) -mmcu=$(DEVICE)
+CC	= avr-gcc -Wall $(COPTS) -mmcu=$(DEVICE)
+CXX	= avr-g++ -Wall $(OPTZ) $(DEFNS) -mmcu=$(DEVICE)
 AS	= avr-as
 
 .c.o:
