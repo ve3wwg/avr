@@ -19,9 +19,11 @@ PGBAUD     = 115200
 
 PROGRAMMER = -c usbasp -F -B 1
 
-OPTZ	   = -Os -g
-DEFNS	   = -DF_CPU=$(F_CPU)
-COPTS	   = $(OPTZ) $(DEFNS)
+OPTZ	= -Os -g
+INCL	= -I/usr/local/include/simavr
+DEFNS	= -DF_CPU=$(F_CPU)
+COPTS	= $(OPTZ) $(DEFNS) $(INCL)
+TRACE	= -Wl,--undefined=_mmcu,--section-start=.mmcu=0x910000
 
 .SUFFIXES: .hex .elf
 
@@ -46,7 +48,7 @@ AS	= avr-as
 
 OBJ	= 8x8rx.o 
 
-all:	8x8reg.hex 
+all:	8x8reg.hex test13.hex
 
 8x8reg.elf: $(OBJ)
 	$(CC) $(OBJ) -o 8x8reg.elf
@@ -55,6 +57,12 @@ all:	8x8reg.hex
 
 flash:	8x8reg.hex
 	$(AVRDUDE) -U flash:w:8x8reg.hex:i
+
+test13.elf: test13.o tx8x8.o trace.o
+	$(CC) $(TRACE) test13.o tx8x8.o trace.o -o test13.elf
+
+flashtest: test13.hex
+	$(AVRDUDE) -U flash:w:test13.hex:i
 
 #fuse:
 #	$(AVRDUDE) $(FUSES)
@@ -66,16 +74,19 @@ clean:
 	rm -f *.o
 
 clobber: clean
-	rm -f *.elf *.hex simul.out .errs.t *.list
+	rm -f *.elf *.hex simul.out .errs.t *.list .simavr_pid .sim.out
 
 disasm:	8x8reg.elf
 	avr-objdump -d 8x8reg.elf
 
-gdb::	sim.elf
-	simulavr -g -d $(SIMDEV) sim.elf 1>simul.out 2>&1 & echo $$! >simulavr.pid
-	avr-gdb
-	@ps -fp $$(cat simulavr.pid)
-	kill $$(cat simulavr.pid)
-	@rm -f simulavr.pid simul.out
+#
+#	Debug with simavr
+#
+gdb:	test13.elf
+	simavr -g -f 8000000 -m attiny13a test13.elf 1>sim.out 2>&1 & echo $$! >.simavr_pid
+	@ps -fp $$(cat .simavr_pid)
+#	@sleep 4
+	avr-gdb -x gdb.simavr
+	@kill $$(cat .simavr_pid)
 
 # End
