@@ -74,7 +74,7 @@ clean:
 	rm -f *.o
 
 clobber: clean
-	rm -f *.elf *.hex simul.out .errs.t *.list .simavr_pid .sim.out
+	rm -f *.elf *.hex simul.out .errs.t *.list .simavr_pid sim.out
 
 disasm:	8x8reg.elf
 	avr-objdump -d 8x8reg.elf
