@@ -80,6 +80,7 @@ FLED		= PB1	; Fault LED
 ; ISR Timer Count
 #define	counterl 	r5
 #define	counterh	r6
+#define counterh2	r7
 #define mdin		r11
 
 ; Receiver State
@@ -88,6 +89,7 @@ FLED		= PB1	; Fault LED
 ; Receive time T (low and high)
 #define	rxtimel		r8
 #define rxtimeh		r9
+#define rxtimeh2	r4
 
 ; Data received (low and high)
 #define datal		r12
@@ -121,30 +123,29 @@ intens:	.fill	1		; Display intensity (default 1)
 fault:	.fill	1		; Fault tick count else zero
 
 ;---------------------------------------------------------------------
-; Right shift (divide by 4) r1:r0
-;---------------------------------------------------------------------
-
-	.text
-divby4:	lsr	r1
-	ror	r0
-	lsr	r1
-	ror	r0
-	ret
-
-;---------------------------------------------------------------------
 ; Test if the counter has timed out
 ; Compare rxtimet < counter ?  If so, set C=1
 ;---------------------------------------------------------------------
+	.text
 
 tcompr:	mov	r0,rxtimel
 	mov	r1,rxtimeh	; r1:r0 = rxtimet
-	rcall	divby4		; r1:r0 /= 4
+	mov	r15,rxtimeh2
+
+	lsr	r15
+	ror	r1
+	ror	r0
+	lsr	r15
+	ror	r1
+	ror	r0
 
 	add	r0,rxtimel
 	adc	r1,rxtimeh	; r1:r0 = rxtimet + 0.25 * rxtimet
+	adc	r15,rxtimeh2
 
 	cp	r0,counterl
 	cpc	r1,counterh	; r1:r0 < r17:r16  ?
+	cpc	r15,counterh2
 	ret
 
 ;---------------------------------------------------------------------
@@ -153,12 +154,12 @@ tcompr:	mov	r0,rxtimel
 
 wtime:	mov	r16,rxtimel
 	mov	r17,rxtimeh
-
+	mov	r18,rxtimeh2
 	cp	r16,counterl
-	cpc	r17,counterh	; r1:r0 < r17:r16  ?
-	brne	1f
-	sec			; Set C=1 when values equal
-1:	ret
+	cpc	r17,counterh
+	cpc	r18,counterh2
+	ret
+	ret			; C=1 when counter > rxtime
 
 ;---------------------------------------------------------------------
 ; READY State - Wait High to Low transition for start of 1st 0-bit
@@ -187,6 +188,7 @@ j1st0:	tst	mdin
 
 2:	mov	rxtimel,counterl ; Capture timer:
 	mov	rxtimeh,counterh ;   rxtimer = counter
+	mov	rxtimeh2,counterh2 ;  more precision
 
 	ldi	r16,S1ST0B	; State - 2nd half of 0-bit
 	rjmp	rchstate	; Clear counter + change state
@@ -329,6 +331,7 @@ jrx:	mov	ZL,datah
 rchstate:
 	clr	counterl
 	clr	counterh	; counter = 0
+	clr	counterh2
 chstate: mov	rxstate,r16	; Change to state in r16
 	ret
 
@@ -374,6 +377,8 @@ TIM0_COMPA_vect:
 1:	inc	counterl	; Normally, we increment our tick
 	brne	2f		;  counter
 	inc	counterh
+	brne	2f
+	inc	counterh2
 
 2:	ldi	ZL,lo8(pm(jmptab))
 	ldi	ZH,hi8(pm(jmptab))
@@ -532,8 +537,11 @@ rxinit:	sbi	DDRX,DIN	; Configure DIN as output
 
 	clr	rxtimel
 	clr	rxtimeh		; T = 0 (no timings done yet)
+	clr	rxtimeh2
+
 	clr	counterl
 	clr	counterh	; Counter = 0
+	clr	counterh2
 
 	clr	mdin
 ;	sbic	PINB,MCHDIN	; Test input line level
@@ -602,11 +610,11 @@ dloop:	rcall	udisp		; Display loop
 ;	r0	scratch
 ;	r1	scratch
 ;	r2	rxtimer
-;	r3	rxtimer+1
-;	r4	(rxtimer+2)
+;	r3	rxtimer+1	rxtimerh
+;	r4	rxtimer+2	rxtimerh2
 ;	r5	counter		counterl
 ;	r6	counter+1	counterh
-;	r7	(counter+2)
+;	r7	counter+2	counterh2
 ;	r8	rxtimet		rxtimel
 ;	r9	rxtimet+1	rxtimeh
 ;	r10					udisp
@@ -614,11 +622,11 @@ dloop:	rcall	udisp		; Display loop
 ;	r12	ldata
 ;	r13	hdata
 ;	r14	bcount
-;	r15				
+;	r15	scratch
 ;	
 ;	r16	ARG1				udisp
 ;	r17	ARG2				udisp
-;	r18	
+;	r18	scratch
 ;	r19	rxstate
 ;	r20	TMP				
 ;	r21	TM2				main
