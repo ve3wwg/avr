@@ -9,8 +9,6 @@
 ; After the main program sets the divisor to 1, the code runs at
 ; 8 MHz
 ;
-; Worst case ISR run is approx 64 cycles (~ 8 usec)
-;
 ; DATA FORMAT:
 ; MSB.....Data........LSB (12-bits, MSB first)
 ; D D D D 7 6 5 4 3 2 1 0
