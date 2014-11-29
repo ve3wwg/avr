@@ -15,6 +15,11 @@
 ;
 ; DDDD is values 0x00 to 0x07 to select a digit.
 ;         Digit  0x08 selects intensity (values 0xX0 to 0xXF)
+;
+; There is an optional input buffer transistor that permits a
+; 3.3V sender to safely interface with this 5V circuit. If the 
+; buffer transistor is not used, then set INVERTIN = 0. When the
+; transistor IS used, then set INVERTIN = 1.
 ;---------------------------------------------------------------------
 
 #define __SFR_OFFSET 0 
@@ -31,6 +36,7 @@
 ;---------------------------------------------------------------------
 
 PRESCALE	= 1	; Timer0 Prescaler (1 = no prescale)
+INVERTIN	= 1	; 1 == invert, 0 == not (invert using transistor)
 
 #if F_MCU >= 8000000
 OCR0A_COUNT	= 170	; Counter match value for 8 MHz MCU
@@ -118,6 +124,7 @@ FLED		= PB1	; Fault LED
 	.section .bss
 byte0:	.fill	8		; 8 Byte buffer for display
 intens:	.fill	1		; Display intensity (default 1)
+invert:	.fill	1		; See INVERTIN above
 fault:	.fill	1		; Fault tick count else zero
 
 ;---------------------------------------------------------------------
@@ -362,6 +369,9 @@ TIM0_COMPA_vect:
 	sbic	IPORTX,MCHDIN	; Test if MCHDIN is set
 	inc	mdin		; mdin = 1
 
+	lds	r16,invert	; Do we need to invert the signal?
+	eor	mdin,r16	; Toggle mdin.0 if r16.0 == 1
+
 	lds	r16,fault	; Don't change counter if faulted
 	tst	r16
 	breq	1f		; Branch if no fault 
@@ -526,6 +536,9 @@ rxinit:	sbi	DDRX,DIN	; Configure DIN as output
 	ldi	r16,1
 	sts	intens,r16	; Initialize = 1
 
+	ldi	r16,INVERTIN	; Get inversion status
+	sts	invert,r16	; Set inversion status
+
 ;---------------------------------------------------------------------
 ; Machester Receiver Initialization
 ;---------------------------------------------------------------------
@@ -542,9 +555,6 @@ rxinit:	sbi	DDRX,DIN	; Configure DIN as output
 	clr	counterh2
 
 	clr	mdin
-;	sbic	PINB,MCHDIN	; Test input line level
-;	inc	mdin		; Set to 1 if MCHDIN = high
-
 	ldi	rxstate,SWAITH	; Initial rxstate = SWAITH
 
 ;---------------------------------------------------------------------
