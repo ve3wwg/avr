@@ -5,14 +5,9 @@
 ######################################################################
 
 include Makefile.incl
+include ../../Makefile.programmer
 
-# PGMAVR = -c usbasp -F -B 1
-
-PGBAUD  = 115200
-PGMBOARDUINO = -c arduino -P /dev/tty.usbserial-A6005XBY -B $(PGBAUD)
-PROGRAMMER = $(PGMBOARDUINO)
-
-AVRDUDE = avrdude $(PROGRAMMER) -p $(PGMDEV)
+PART	= atmega328p
 
 all:	test1.hex test2.hex
 
@@ -29,13 +24,14 @@ vusb/libvusb.a:
 	$(MAKE) -$(MAKEFLAGS) -Cvusb all
 
 flash1:	test1.hex
-	$(AVRDUDE) -U flash:w:test1.hex:i
+	$(AVRDUDE) -p $(PART) -vv -U flash:w:test1.hex:i
 
 flash2: test2.hex
-	$(AVRDUDE) -U flash:w:test2.hex:i -U lfuse:w:0x7f:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
+	$(AVRDUDE) -p $(PART) -U flash:w:test2.hex:i -U lfuse:w:0x5e:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
+#                                                    -U lfuse:w:0x7f:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
 
 readfuse:
-	$(AVRDUDE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
+	$(AVRDUDE) -p $(PART) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
 
 clean:
 	$(MAKE) -$(MAKEFLAGS) -Cvusb clean
@@ -43,6 +39,7 @@ clean:
 
 clobber: clean
 	$(MAKE) -$(MAKEFLAGS) -Cvusb clobber
+	$(MAKE) -$(MAKEFLAGS) -Cposix clobber
 	rm -f test1 test2
 	rm -f *.elf *.hex .errs.t
 
