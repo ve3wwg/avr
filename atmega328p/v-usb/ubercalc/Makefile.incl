@@ -1,0 +1,53 @@
+######################################################################
+#  Makefile settings
+######################################################################
+
+DEVICE	?= atmega328p
+F_CPU	?= 16000000	
+NDEBUG	?= 0
+
+ifneq	($(NDEBUG),0)
+NDEBUG	= -DNDEBUG
+else
+NDEBUG	=
+endif
+
+ifeq	($(DEVICE),atmega328p)
+PGMDEV	= m328p
+else
+PGMDEV	= $(DEVICE)
+endif
+
+TOPDIR := $(dir $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
+
+INCL	   = -I$(TOPDIR) -I$(TOPDIR)/qd/include
+OPTZ	   = -Os $(DEFNS)
+DEFNS	   = -DF_CPU=$(F_CPU) $(NDEBUG)
+CXXOPTS	   = $(OPTZ) $(INCL)
+COPTS	   = $(OPTZ) $(INCL)
+
+.SUFFIXES: .hex .elf
+
+CXX	= avr-g++ -Wall -mmcu=$(DEVICE)
+CC	= avr-gcc -Wall -mmcu=$(DEVICE)
+AS	= avr-as
+AR	= avr-ar
+
+.cpp.o:
+	$(CXX) -c $(CXXOPTS) $< -o $@
+
+.c.o:
+	$(CC) -c $(COPTS) $< -o $@
+
+.S.o:
+	$(CC) -x assembler-with-cpp -c -g $(DEFNS) $< -o $@ -Wa,-a=$*.list
+
+.c.s:
+	$(CC) -S $< -o $@
+
+.elf.hex:
+	@rm -f $*.hex
+	avr-objcopy -j .text -j .data -O ihex $< $@
+	avr-size --format=avr --mcu=$(DEVICE) $<
+
+# End

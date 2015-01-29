@@ -1,0 +1,20 @@
+######################################################################
+#  Makefile.incl
+######################################################################
+
+INCL	= -I.
+OPTZ	= -g -O0
+
+CXXFLAGS = -Wall -std=c++11 $(OPTZ) $(INCL)
+CFLAGS = -Wall $(OPTZ) $(INCL)
+
+CXX=c++
+CC=gcc
+
+.cpp.o:
+	$(CXX) -c $(CXXFLAGS) $< -o $*.o
+
+.c.o:
+	$(CC) -c $(CFLAGS) $< -o $*.o
+
+# End
