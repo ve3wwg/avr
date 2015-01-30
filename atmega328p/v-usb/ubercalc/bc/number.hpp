@@ -67,8 +67,17 @@
 #define LONG_MAX 0x7ffffff
 #endif
 
+typedef enum {
+	bc_cond_exponent_too_large,	// exponent too large
+	bc_cond_nzero_base_scale,	// non-zero scale in base
+	bc_cond_nzero_exp_scale,	// non-zero scale in exponent
+	bc_cond_nzero_mod_scale		// non-zero scale in modulus
+} bc_condition_t;
 
 extern "C" {
+
+	extern void bc_condition(bc_condition_t cond);
+	extern void bc_out_of_memory();
 
 	typedef enum {PLUS, MINUS} sign;
 
@@ -96,10 +105,14 @@ extern "C" {
 	extern bc_num _two_;
 	
 	void bc_init_numbers();
+
 	bc_num bc_new_num(int length,int scale);
 	void bc_free_num(bc_num *num);
+
 	bc_num bc_copy_num(bc_num num);
+
 	void bc_init_num(bc_num *num);
+
 	void bc_str2num(bc_num *num,const char *str,int scale);
 	char *bc_num2str(bc_num num);
 	void bc_int2num(bc_num *num,int val);
