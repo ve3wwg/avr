@@ -6,18 +6,37 @@
 #include <stdio.h>
 #include "bcnum.hpp"
 
-static bool iflag = false;		// True after initialization
-
 BC_Num::BC_Num() {
-	if ( !iflag ) {
+	if ( !bc_inited )
 		bc_init_numbers();
-		iflag = true;
-	}
 	bc_init_num(&num);
 }
 
 BC_Num::~BC_Num() {
 	bc_free_num(&num);
+}
+
+int
+BC_Num::common_scale(const BC_Num& rvalue) const {
+	return num->n_scale > rvalue.num->n_scale ? num->n_scale : rvalue.num->n_scale;
+}
+
+BC_Num
+BC_Num::operator+(const BC_Num& rvalue) const {
+	bc_num result;
+
+	bc_init_num(&result);
+	bc_add(num,rvalue.num,&result,common_scale(rvalue));
+	return BC_Num(result);
+}
+
+BC_Num
+BC_Num::operator-(const BC_Num& rvalue) const {
+	bc_num result;
+
+	bc_init_num(&result);
+	bc_sub(num,rvalue.num,&result,common_scale(rvalue));
+	return BC_Num(result);
 }
 
 static void

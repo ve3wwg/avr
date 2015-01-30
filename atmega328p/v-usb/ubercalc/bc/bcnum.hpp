@@ -12,12 +12,27 @@
 class BC_Num {
 	bc_num		num;
 
+protected:
+	int common_scale(const BC_Num& rvalue) const;
+
 public:	BC_Num();
+	BC_Num(bc_num val) {
+		num = val;
+	}
 	~BC_Num();
 
-	inline void set(const char *val,int scale) { bc_str2num(&num,val,scale); }
+	inline void set(const char *val,int scale) {
+		bc_str2num(&num,val,scale);
+	}
 
-	BC_Num& operator=(const BC_Num& rvalue) { bc_free_num(&num); num = bc_copy_num(rvalue.num); return *this; }
+	inline BC_Num& operator=(const BC_Num& rvalue) {
+		bc_free_num(&num);
+		num = bc_copy_num(rvalue.num);
+		return *this;
+	}
+
+	BC_Num operator+(const BC_Num& rvalue) const;
+	BC_Num operator-(const BC_Num& rvalue) const;
 
 	void dump();
 };
