@@ -13,6 +13,7 @@ clean:
 	rm -f *.o *.core
 
 clobber: clean
+	@rm -f errs.t .errs.t
 	rm -f testmain 
 
 number.o: number.hpp
