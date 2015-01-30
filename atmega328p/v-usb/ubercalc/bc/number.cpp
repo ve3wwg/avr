@@ -42,6 +42,9 @@
 
 extern "C" {
 
+int bc_valgrind = 0;		// App sets to 1 when valgrind testing
+int bc_inited = 0;		// Set non-zero after bc_init_numbers() called
+
 //////////////////////////////////////////////////////////////////////
 // Storage used for special numbers.
 //////////////////////////////////////////////////////////////////////
@@ -101,8 +104,13 @@ bc_free_num(bc_num *num) {
 	if ( (*num)->n_refs == 0 ) {
 		if ( (*num)->n_ptr )
 			free((*num)->n_ptr);
-		(*num)->n_next = _bc_Free_list;
-		_bc_Free_list = *num;
+		if ( !bc_valgrind ) {
+			(*num)->n_next = _bc_Free_list;
+			_bc_Free_list = *num;
+		} else	{
+			// Free everything when valgrind testing
+			free(*num);
+		}
 	}
 
 	*num = NULL;
@@ -114,11 +122,24 @@ bc_free_num(bc_num *num) {
 
 void
 bc_init_numbers() {
+	if ( bc_inited )
+		return;
 	_zero_ = bc_new_num(1,0);
 	_one_  = bc_new_num(1,0);
 	_one_->n_value[0] = 1;
 	_two_  = bc_new_num(1,0);
 	_two_->n_value[0] = 2;
+	bc_inited = 1;
+}
+
+void
+bc_fini_numbers() {
+	if ( bc_inited ) {
+		bc_free_num(&_zero_);
+		bc_free_num(&_one_);
+		bc_free_num(&_two_);
+	}
+	bc_inited = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -794,9 +815,9 @@ _bc_rec_mul(bc_num u,int ulen,bc_num v,int vlen,bc_num *prod,int full_scale) {
 	
 	bc_init_num(&d1);
 	bc_init_num(&d2);
-	bc_sub (u1, u0, &d1, 0);
+	bc_sub(u1, u0, &d1, 0);
 	d1len = d1->n_len;
-	bc_sub (v0, v1, &d2, 0);
+	bc_sub(v0, v1, &d2, 0);
 	d2len = d2->n_len;
 	
 	// Do recursive multiplies and shifted adds.

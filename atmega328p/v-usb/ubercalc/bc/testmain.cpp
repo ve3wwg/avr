@@ -53,17 +53,18 @@ out_dig(int dig) {
 
 int
 main(int argc,char **argv) {
+	{
+//	bc_valgrind = 1;
 	BC_Num A, B, C;
 	bc_num a, b, c, q, r;
 
-//	bc_init_numbers();
+	bc_init_numbers();	// Not required if BC_Num constructor happens first
 
 	bc_init_num(&a);
 	bc_init_num(&b);
 	bc_init_num(&c);
 	bc_init_num(&q);
 	bc_init_num(&r);
-
 	bc_str2num(&a,"23.5",6);
 	bc_out_num(a,10,out_dig,0);	
 	putchar('\n');
@@ -103,8 +104,18 @@ main(int argc,char **argv) {
 	B.set("98.007",3);
 	B.dump();
 
-	A = B;
-	A.dump();
+	C = A + B;
+	C.dump();
+
+	bc_free_num(&a);
+	bc_free_num(&b);
+	bc_free_num(&c);
+	bc_free_num(&q);
+	bc_free_num(&r);
+	}
+
+	if ( bc_valgrind )
+		bc_fini_numbers();		// Not required, except for valgrind testing
 
 	return 0;
 }

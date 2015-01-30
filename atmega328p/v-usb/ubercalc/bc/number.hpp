@@ -76,6 +76,9 @@ typedef enum {
 
 extern "C" {
 
+	extern int bc_valgrind;		// Set non-zero for valgrind testing
+	extern int bc_inited;		// Non-zero when bc_init_numbers() called
+
 	extern void bc_condition(bc_condition_t cond);
 	extern void bc_out_of_memory();
 
@@ -105,6 +108,7 @@ extern "C" {
 	extern bc_num _two_;
 	
 	void bc_init_numbers();
+	void bc_fini_numbers();	// required for valgrind testing only
 
 	bc_num bc_new_num(int length,int scale);
 	void bc_free_num(bc_num *num);
