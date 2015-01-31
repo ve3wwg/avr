@@ -98,14 +98,86 @@ main(int argc,char **argv) {
 	bc_out_num(c,10,out_dig,0);	
 	putchar('\n');
 
-	A.set("4501.9",10);
-	A.dump();
+	A.assign("4501.9",10);
+	A.dump("A:");
 
-	B.set("98.007",3);
-	B.dump();
+	B.assign("98.007");
+	B.dump("B:");
 
-	C = A + B;
-	C.dump();
+	C = A * B;
+	C.dump("C:");
+
+	BC_Num D, Two("2");
+
+	D = C / Two;
+	D.dump("C/2:");	
+
+	BC_Num M, E;
+
+	E = D / B;
+	M = D % B;
+
+	E.dump("D/B:");
+	M.dump("D%B:");
+
+	E = B ^ Two;
+	E.dump("B^2:");
+
+	BC_Num Nine("9.0009"), N99(99);
+	Nine.dump("Nine:");	
+	N99.dump("N99:");
+
+	printf("Nine = %ld (as a long)\n",Nine.as_long());
+
+	BC_Num N22(22), N7(7), NQ, NR;
+
+	NQ = N22.divmod(N7,NR,3);
+	NQ.dump("NQ:");
+	NR.dump("NR:");
+
+	NQ = N22.div(N7,4);
+	NQ.dump("NQ:");
+	printf("NQ.scale = %d\n",NQ.scale());
+
+	BC_Num N8(8), N2(2), N10(10);
+
+	NR = N8.raisemod(N2,N10,0);
+	NR.dump("raisemod:");
+
+	BC_Num Zero(0);
+	printf("Zero = %d\n",!Zero);
+
+	BC_Num Nearly("0.001");
+
+	for ( int sc = 0; sc<5; ++sc )
+		printf("0.001 near_zero(%d) => %d\n",sc,Nearly.is_near_zero(sc));
+
+	Nearly.assign("0.002");
+	for ( int sc = 0; sc<5; ++sc )
+		printf("0.002 near_zero(%d) => %d\n",sc,Nearly.is_near_zero(sc));
+
+	BC_Num Big(9), Same(9), Small(8);
+
+	assert(Big > Small);
+	assert(Big >= Small);
+	assert(Big >= Same);
+	assert(Big == Same);
+	assert(Big != Small);
+	assert(Small < Big);
+	assert(Same <= Big);
+
+	BC_Num Neg("-65.04");
+	Neg.dump("Neg:");
+
+	assert(Neg.is_negative());
+
+	N8.dump("N8:");
+	N8 = N8.negate();
+	N8.dump("-N8:");
+
+	BC_Num::zero().dump("0:");
+	BC_Num::one().dump("1:");
+	BC_Num::two().dump("2:");
 
 	bc_free_num(&a);
 	bc_free_num(&b);
@@ -113,6 +185,11 @@ main(int argc,char **argv) {
 	bc_free_num(&q);
 	bc_free_num(&r);
 	}
+
+	BC_Num s, piby4(".7853");
+
+	s = s.sin(piby4,12);
+	s.dump("sin(x):");
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing

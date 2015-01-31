@@ -114,13 +114,10 @@ extern "C" {
 	void bc_free_num(bc_num *num);
 
 	bc_num bc_copy_num(bc_num num);
-
 	void bc_init_num(bc_num *num);
 
 	void bc_str2num(bc_num *num,const char *str,int scale);
 	char *bc_num2str(bc_num num);
-	void bc_int2num(bc_num *num,int val);
-	long bc_num2long(bc_num num);
 	int bc_compare(bc_num n1,bc_num n2);
 	char bc_is_zero(bc_num num);
 	char bc_is_near_zero(bc_num num,int scale);
@@ -130,10 +127,15 @@ extern "C" {
 	void bc_multiply(bc_num n1,bc_num n2,bc_num *prod,int scale);
 	int bc_divide(bc_num n1,bc_num n2,bc_num *quot,int scale);
 	int bc_modulo(bc_num num1,bc_num num2,bc_num *result,int scale);
-	int bc_divmod(bc_num num1,bc_num num2,bc_num *quot,bc_num *rem,int scale);
-	int bc_raisemod(bc_num base,bc_num expo,bc_num mod,bc_num *result,int scale);
 	void bc_raise(bc_num num1,bc_num num2,bc_num *result,int scale);
 	int bc_sqrt(bc_num *num,int scale);
+
+	int bc_divmod(bc_num num1,bc_num num2,bc_num *quot,bc_num *rem,int scale);
+	int bc_raisemod(bc_num base,bc_num expo,bc_num mod,bc_num *result,int scale);
+
+	void bc_int2num(bc_num *num,int val);
+	long bc_num2long(bc_num num);
+
 	void bc_out_num(bc_num num,int o_base,void (*out_char)(int),int leading_zero);
 
 } // extern "C"
