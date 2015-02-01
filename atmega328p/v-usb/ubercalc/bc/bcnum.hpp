@@ -74,6 +74,9 @@ public:	BC();
 	BC& operator++();
 	BC& operator--();
 
+	BC operator++(int);
+	BC operator--(int);
+
 	BC& operator+=(const BC& rvalue);
 	BC& operator-=(const BC& rvalue);
 	BC& operator*=(const BC& rvalue);
@@ -88,9 +91,10 @@ public:	BC();
 
 	BC negate() const;
 
-	BC sin(const BC& x,int scale) const;
-	BC cos(const BC& x,int scale) const;
-	BC atan(const BC& x,int scale) const;
+	static BC sin(const BC& x,int scale);
+	static BC cos(const BC& x,int scale);
+	static BC atan(const BC& x,int scale);
+	static BC e(const BC& x,int scale);
 
 	void dump(const char *prefix=0) const;
 

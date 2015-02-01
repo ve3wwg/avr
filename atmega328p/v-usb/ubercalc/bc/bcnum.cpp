@@ -235,10 +235,24 @@ BC::operator++() {
 	return *this;
 }
 
+BC
+BC::operator++(int) {
+	bc_num temp = bc_copy_num(num);
+	bc_add(_one_,num,&num,num->n_scale);
+	return BC(temp);
+}
+
 BC&
 BC::operator--() {
 	bc_sub(num,_one_,&num,num->n_scale);
 	return *this;
+}
+
+BC
+BC::operator--(int) {
+	bc_num temp = bc_copy_num(num);
+	bc_sub(_one_,num,&num,num->n_scale);
+	return BC(temp);
 }
 
 BC&
@@ -347,7 +361,7 @@ BC::dump(const char *prefix) const {
 //////////////////////////////////////////////////////////////////////
 
 BC
-BC::atan(const BC& x,int scale) const {
+BC::atan(const BC& x,int scale) {
 	BC z(scale), a, Pt2(".2"), f, v, n, e, i, s, m(1), X(x);
 
 	// a is the value of a(.2) if it is needed.
@@ -426,11 +440,11 @@ BC::atan(const BC& x,int scale) const {
 //////////////////////////////////////////////////////////////////////
 
 BC
-BC::sin(const BC& x,int scale) const {
-	BC e, i, m, n, s, v, z(scale), sc, X(x), Four(4);
+BC::sin(const BC& x,int scale) {
+	BC e, m, n, s, v, z(scale), sc, X(x), Four(4);
 
 	sc = BC("1.1") * z + BC(2);	// scale = 1.1 * z + 2
-	v = atan(BC(1),sc.as_long());
+	v = BC::atan(BC(1),sc.as_long());
 	v.rescale(scale);
 
 	if ( X.is_negative() ) {
@@ -454,7 +468,7 @@ BC::sin(const BC& x,int scale) const {
 
 	int use_sc = z.as_long() + 2;
 
-	for ( i=3; 1; i += BC(2) ) {
+	for ( int i=3; 1; i += 2 ) {
 		BC div(i * (i - 1));
 		BC mul(s / div);
 		mul.rescale(s.scale());
@@ -475,14 +489,116 @@ BC::sin(const BC& x,int scale) const {
 }
 
 BC
-BC::cos(const BC& x,int scale) const {
+BC::cos(const BC& x,int scale) {
 	BC v, sc(scale);
 
 	sc *= BC("1.2");
 
 	int use_scale = sc.as_long();
-	v = sin(x + atan(1,use_scale) * BC(2),use_scale);
+	v = sin(x + BC::atan(1,use_scale) * BC(2),use_scale);
 	return v.rescale(scale);
 }	
+
+BC
+BC::e(const BC& x,int scale) {
+	int m = 0;
+	BC a, d(1), e, f, n, v, z(scale), X(x);
+
+	// a - holds x^y of x^y/y!
+	// d - holds y!
+	// e - is the value x^y/y!
+	// v - is the sum of the e's
+	// f - number of times x was divided by 2.
+	// m - is 1 if x was minus.
+	// i - iteration count.
+	// n - the scale to compute the sum.
+	// z - orignal scale.
+
+	// Check the sign of x.
+	if ( x.is_negative() ) {
+		m = 1;
+		X = -x;
+	} 
+
+	// Precondition x.
+	n = z + 6 + BC(".44") * X;
+	int use_scale = X.scale() + 1;
+
+	while ( X > 1 ) {
+		++f;
+		X /= BC(2);
+		X.rescale(use_scale);
+		use_scale += 1;
+	}
+
+	// Initialize the variables.
+	use_scale = n.as_long();
+
+	v = X + 1;
+	a = X;
+
+	for ( int i=2; 1; ++i ) {
+		e = (a *= X) / (d *= BC(i)).rescale(use_scale);
+		e.rescale(use_scale);
+		if ( e == 0 ) {
+			if ( f > 0 )
+				while ( f-- != 0 ) 
+					v = v * v;
+
+			use_scale = z.as_long();
+
+			if ( m ) {
+				v = BC(1) / v;
+				v.rescale(use_scale);
+			}
+			v.rescale(use_scale);
+			return v;
+		}
+		v += e;
+	}
+}
+
+#if 0
+/* Natural log. Uses the fact that ln(x^2) = 2*ln(x)
+    The series used is:
+       ln(x) = 2(a+a^3/3+a^5/5+...) where a=(x-1)/(x+1)
+*/
+
+define l(x) {
+  auto e, f, i, m, n, v, z
+
+  /* return something for the special case. */
+  if (x <= 0) return ((1 - 10^scale)/1)
+
+  /* Precondition x to make .5 < x < 2.0. */
+  z = scale;
+  scale = 6 + scale;
+  f = 2;
+  i=0
+  while (x >= 2) {  /* for large numbers */
+    f *= 2;
+    x = sqrt(x);
+  }
+  while (x <= .5) {  /* for small numbers */
+    f *= 2;
+    x = sqrt(x);
+  }
+
+  /* Set up the loop. */
+  v = n = (x-1)/(x+1)
+  m = n*n
+
+  /* Sum the series. */
+  for (i=3; 1; i+=2) {
+    e = (n *= m) / i
+    if (e == 0) {
+      v = f*v
+      scale = z
+      return (v/1)
+    }
+    v += e
+  }
+}
+#endif    
 
 // End bcnum.cpp
