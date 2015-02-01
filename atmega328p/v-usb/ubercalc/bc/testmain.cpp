@@ -192,11 +192,14 @@ main(int argc,char **argv) {
 
 		x.dump("x:");
 
-		s = s.sin(x,30);
+		s = BC::sin(x,30);
 		s.dump("sin(x):");
 	
-		BC c = s.cos(x,30);
+		BC c = BC::cos(x,30);
 		c.dump("cos(x):");
+
+		BC e = BC::e(BC(1),30);
+		e.dump("e:");
 	}
 
 	if ( bc_valgrind )
