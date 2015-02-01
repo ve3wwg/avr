@@ -1,37 +1,46 @@
 ///////////////////////////////////////////////////////////////////////
-// bcnum.cpp -- BC_Num Class Implementation
+// bcnum.cpp -- BC Class Implementation
 // Date: Thu Jan 29 21:37:05 2015  (C) Warren W. Gay VE3WWG 
 ///////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include "bcnum.hpp"
 
-BC_Num::BC_Num() {
+BC::BC() {
 	if ( !bc_inited )
 		bc_init_numbers();
 	bc_init_num(&num);
 }
 
-BC_Num::BC_Num(const char *val) {
+BC::BC(const char *val) {
 	bc_init_num(&num);
 
 	assign(val);
 }
 
-BC_Num::BC_Num(int val) {
+BC::BC(int val) {
+
 	if ( !bc_inited )
 		bc_init_numbers();
 
-	bc_init_num(&num);
-	bc_int2num(&num,val);
+	if ( val == 0 )
+		num = bc_copy_num(_zero_);
+	else if ( val == 1 )
+		num = bc_copy_num(_one_);
+	else if ( val == 1 )
+		num = bc_copy_num(_two_);
+	else	{
+		bc_init_num(&num);
+		bc_int2num(&num,val);
+	}
 }
 
-BC_Num::~BC_Num() {
+BC::~BC() {
 	bc_free_num(&num);
 }
 
-BC_Num&
-BC_Num::assign(const char *val) {
+BC&
+BC::assign(const char *val) {
 	const char *cp = val;
 	unsigned scale = 0;
 
@@ -49,170 +58,170 @@ BC_Num::assign(const char *val) {
 }
 
 int
-BC_Num::common_scale(const BC_Num& rvalue) const {
+BC::common_scale(const BC& rvalue) const {
 	return num->n_scale > rvalue.num->n_scale ? num->n_scale : rvalue.num->n_scale;
 }
 
-BC_Num
-BC_Num::operator+(const BC_Num& rvalue) const {
+BC
+BC::operator+(const BC& rvalue) const {
 	bc_num result;
 
 	bc_init_num(&result);
 	bc_add(num,rvalue.num,&result,common_scale(rvalue));
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::operator-() const {
+BC
+BC::operator-() const {
 	bc_num result = bc_copy_num(_zero_);
 
 	bc_sub(result,num,&result,num->n_scale);
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::operator-(const BC_Num& rvalue) const {
+BC
+BC::operator-(const BC& rvalue) const {
 	bc_num result;
 
 	bc_init_num(&result);
 	bc_sub(num,rvalue.num,&result,common_scale(rvalue));
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::operator*(const BC_Num& rvalue) const {
+BC
+BC::operator*(const BC& rvalue) const {
 	bc_num result;
 
 	bc_init_num(&result);
 	bc_multiply(num,rvalue.num,&result,num->n_scale+rvalue.num->n_scale);
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::operator/(const BC_Num& rvalue) const {
+BC
+BC::operator/(const BC& rvalue) const {
 	bc_num result;
 	int scale = num->n_scale > rvalue.num->n_scale ? num->n_scale : rvalue.num->n_scale;
 
 	bc_init_num(&result);
 	bc_divide(num,rvalue.num,&result,scale);
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::div(const BC_Num& rvalue,int scale) const {
+BC
+BC::div(const BC& rvalue,int scale) const {
 	bc_num result;
 
 	bc_init_num(&result);
 	bc_divide(num,rvalue.num,&result,scale);
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::operator%(const BC_Num& rvalue) const {
+BC
+BC::operator%(const BC& rvalue) const {
 	bc_num result;
 	int scale = num->n_scale > rvalue.num->n_scale ? num->n_scale : rvalue.num->n_scale;
 
 	bc_init_num(&result);
 	bc_modulo(num,rvalue.num,&result,scale);
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::divmod(const BC_Num& divisor,BC_Num& mod,int scale) const {
+BC
+BC::divmod(const BC& divisor,BC& mod,int scale) const {
 	bc_num q;
 
 	bc_init_num(&q);
 	bc_divmod(num,divisor.num,&q,&mod.num,scale);
-	return BC_Num(q);
+	return BC(q);
 }
 
-BC_Num
-BC_Num::operator^(const BC_Num& rvalue) const {
+BC
+BC::operator^(const BC& rvalue) const {
 	bc_num result;
 	long s2 = bc_num2long(rvalue.num);
 	int scale = num->n_scale * s2;
 
 	bc_init_num(&result);
 	bc_raise(num,rvalue.num,&result,scale);
-	return BC_Num(result);
+	return BC(result);
 }
 
-BC_Num
-BC_Num::raisemod(const BC_Num& exp,const BC_Num& mod,int scale) const {
+BC
+BC::raisemod(const BC& exp,const BC& mod,int scale) const {
 	bc_num r;
 
 	bc_init_num(&r);
 	bc_raisemod(num,exp.num,mod.num,&r,scale);
-	return BC_Num(r);
+	return BC(r);
 }
 
 bool
-BC_Num::operator!() const {
+BC::operator!() const {
 	return !!bc_is_zero(num);
 }
 
 bool
-BC_Num::is_near_zero(int scale) const {
+BC::is_near_zero(int scale) const {
 	return !!bc_is_near_zero(num,scale);
 }
 
 bool
-BC_Num::operator<(const BC_Num& rvalue) const {
+BC::operator<(const BC& rvalue) const {
 	return bc_compare(num,rvalue.num) < 0;
 }
 
 bool
-BC_Num::operator<=(const BC_Num& rvalue) const {
+BC::operator<=(const BC& rvalue) const {
 	return bc_compare(num,rvalue.num) <= 0;
 }
 
 bool
-BC_Num::operator==(const BC_Num& rvalue) const {
+BC::operator==(const BC& rvalue) const {
 	return bc_compare(num,rvalue.num) == 0;
 }
 
 bool
-BC_Num::operator!=(const BC_Num& rvalue) const {
+BC::operator!=(const BC& rvalue) const {
 	return bc_compare(num,rvalue.num) != 0;
 }
 
 bool
-BC_Num::operator>=(const BC_Num& rvalue) const {
+BC::operator>=(const BC& rvalue) const {
 	return bc_compare(num,rvalue.num) >= 0;
 }
 
 bool
-BC_Num::operator>(const BC_Num& rvalue) const {
+BC::operator>(const BC& rvalue) const {
 	return bc_compare(num,rvalue.num) > 0;
 }
 
 bool
-BC_Num::is_negative() const {
+BC::is_negative() const {
 	return !!bc_is_neg(num);
 }
 
-BC_Num
-BC_Num::negate() const {
+BC
+BC::negate() const {
 	bc_num r = bc_copy_num(_zero_);
 
 	bc_sub(r,num,&r,num->n_scale);
-	return BC_Num(r);
+	return BC(r);
 }
 
-BC_Num&
-BC_Num::operator++() {
+BC&
+BC::operator++() {
 	bc_add(_one_,num,&num,num->n_scale);
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator--() {
+BC&
+BC::operator--() {
 	bc_sub(num,_one_,&num,num->n_scale);
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator+=(int rvalue) {
+BC&
+BC::operator+=(int rvalue) {
 	bc_num r = bc_copy_num(_zero_);
 	bc_int2num(&r,rvalue);
 	bc_add(num,r,&num,common_scale(rvalue));
@@ -220,14 +229,14 @@ BC_Num::operator+=(int rvalue) {
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator+=(const BC_Num& rvalue) {
+BC&
+BC::operator+=(const BC& rvalue) {
 	bc_add(num,rvalue.num,&num,common_scale(rvalue));
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator-=(int rvalue) {
+BC&
+BC::operator-=(int rvalue) {
 	bc_num r = bc_copy_num(_zero_);
 	bc_int2num(&r,rvalue);
 	bc_sub(num,r,&num,num->n_scale);
@@ -235,14 +244,14 @@ BC_Num::operator-=(int rvalue) {
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator-=(const BC_Num& rvalue) {
+BC&
+BC::operator-=(const BC& rvalue) {
 	bc_sub(num,rvalue.num,&num,common_scale(rvalue));
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator*=(int rvalue) {
+BC&
+BC::operator*=(int rvalue) {
 	bc_num r = bc_copy_num(_zero_);
 	bc_int2num(&r,rvalue);
 	bc_multiply(num,r,&num,num->n_scale);
@@ -250,15 +259,15 @@ BC_Num::operator*=(int rvalue) {
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator*=(const BC_Num& rvalue) {
+BC&
+BC::operator*=(const BC& rvalue) {
 	int scale = num->n_scale + rvalue.num->n_scale;
 	bc_multiply(num,rvalue.num,&num,scale);
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator/=(int rvalue) {
+BC&
+BC::operator/=(int rvalue) {
 	bc_num r = bc_copy_num(_zero_);
 	bc_int2num(&r,rvalue);
 	bc_divide(num,r,&num,num->n_scale);
@@ -266,16 +275,16 @@ BC_Num::operator/=(int rvalue) {
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator/=(const BC_Num& rvalue) {
+BC&
+BC::operator/=(const BC& rvalue) {
 	int scale = num->n_scale > rvalue.num->n_scale ? num->n_scale : rvalue.num->n_scale;
 
 	bc_divide(num,rvalue.num,&num,scale);
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator%=(int rvalue) {
+BC&
+BC::operator%=(int rvalue) {
 	bc_num r = bc_copy_num(_zero_);
 	bc_int2num(&r,rvalue);
 	bc_modulo(num,r,&num,num->n_scale);
@@ -283,8 +292,8 @@ BC_Num::operator%=(int rvalue) {
 	return *this;
 }
 
-BC_Num&
-BC_Num::operator%=(const BC_Num& rvalue) {
+BC&
+BC::operator%=(const BC& rvalue) {
 	int scale = num->n_scale > rvalue.num->n_scale ? num->n_scale : rvalue.num->n_scale;
 
 	bc_modulo(num,rvalue.num,&num,scale);
@@ -297,7 +306,7 @@ out_dig(int c) {
 }
 
 void
-BC_Num::dump(const char *prefix) const {
+BC::dump(const char *prefix) const {
 	if ( prefix )
 		fputs(prefix,stdout);
 	bc_out_num(num,10,out_dig,0);	
@@ -316,9 +325,9 @@ BC_Num::dump(const char *prefix) const {
 //   atan(x) = x - x^3/3 + x^5/5 - x^7/7 + ...   */
 //////////////////////////////////////////////////////////////////////
 
-BC_Num
-BC_Num::atan(const BC_Num& x,int scale) {
-	BC_Num z(scale), a, Pt2(".2"), f, v, n, e, i, s, m(_one_), X(x);
+BC
+BC::atan(const BC& x,int scale) {
+	BC z(scale), a, Pt2(".2"), f, v, n, e, i, s, m(1), X(x);
 
 	// a is the value of a(.2) if it is needed.
 	// f is the value to multiply by a in the return.
@@ -332,34 +341,38 @@ BC_Num::atan(const BC_Num& x,int scale) {
 
   	// Negative x?
 	if ( X.is_negative() ) {
-		m = BC_Num::zero() - BC_Num::one();	// m = -1;
-		X = BC_Num::zero() - x;			// x = -x;
+		m = BC(-1);			// m = -1;
+		X = -X;				// x = -x;
 	}
 
   	// Special case and for fast answers
-	if ( X == BC_Num::one() ) {
+	if ( X == BC(1) ) {
+#if 0
 		if ( scale <= 25 )
-			return BC_Num(".7853981633974483096156608") / m;
+			return BC(".7853981633974483096156608") / m;
 		if ( scale <= 40 )
-			return BC_Num(".7853981633974483096156608458198757210492") / m;
+			return BC(".7853981633974483096156608458198757210492") / m;
 		if ( scale <= 60 )
-			return BC_Num(".785398163397448309615660845819875721049292349843776455243736") / m;
+#endif
+			return BC(".785398163397448309615660845819875721049292349843776455243736") / m;
 	}
 
 	if ( X == Pt2 ) {
+#if 0
 		if ( scale <= 25 )
-			return BC_Num(".1973955598498807583700497") / m;
+			return BC(".1973955598498807583700497") / m;
 		if ( scale <= 40 )
-			return BC_Num(".1973955598498807583700497651947902934475") / m;
+			return BC(".1973955598498807583700497651947902934475") / m;
 		if ( scale <= 60 )
-			return BC_Num(".197395559849880758370049765194790293447585103787852101517688") / m;
+#endif
+			return BC(".197395559849880758370049765194790293447585103787852101517688") / m;
 	}
 
 	// Note: a and f are known to be zero due to being auto vars.
 	// Calculate atan of a known number.
 
 	if ( X > Pt2 ) {
-		z += BC_Num(5);
+		z += BC(5);
 		a = Pt2;
 	}
    
@@ -368,7 +381,7 @@ BC_Num::atan(const BC_Num& x,int scale) {
 
 	while ( X > Pt2 ) {
 		++f;
-		X = (X - Pt2) / (BC_Num::one() + X * Pt2);
+		X = (X - Pt2) / (BC(1) + X * Pt2);
 	}
 
 	// Initialize the series.
@@ -376,7 +389,7 @@ BC_Num::atan(const BC_Num& x,int scale) {
 	s = (-X) * X;
 
 	// Calculate the series.
-	for ( i = 3; 1; i += BC_Num::two() ) {
+	for ( i = 3; 1; i += BC(2) ) {
 		e = (n *= s) / i;
 		if ( !e ) {
 			scale = z.as_long();
@@ -391,15 +404,15 @@ BC_Num::atan(const BC_Num& x,int scale) {
 // sin(x) = x - x^3/3! + x^5/5! - x^7/7! ... */
 //////////////////////////////////////////////////////////////////////
 
-BC_Num
-BC_Num::sin(const BC_Num& x,int scale) {
-	BC_Num e, i, m, n, s, v, z(scale), sc, X(x), Four(4);
+BC
+BC::sin(const BC& x,int scale) {
+	BC e, i, m, n, s, v, z(scale), sc, X(x), Four(4);
 
-	sc = BC_Num("1.1") * z + BC_Num::two();	// scale = 1.1 * z + 2
-	v = atan(BC_Num::one(),scale);
+	sc = BC("1.1") * z + BC::two();	// scale = 1.1 * z + 2
+	v = atan(BC::one(),scale);
 
 	if ( X.is_negative() ) {
-		m = BC_Num::one();	// m = 1;
+		m = BC::one();	// m = 1;
 		X = -X;			// x = -x;
 	}
 
@@ -407,7 +420,7 @@ BC_Num::sin(const BC_Num& x,int scale) {
 	n = (X / v + 2 ) / Four;
 	X = X - Four * n * v;
 
-	if ( (n % BC_Num::two()).as_long() )
+	if ( (n % BC::two()).as_long() )
 		X = -X;			// x = -x
 
 	// Do the loop.
@@ -415,13 +428,13 @@ BC_Num::sin(const BC_Num& x,int scale) {
 	v = e = x;
 	s = (-X) * X;
 
-	for ( i=3; 1; i += BC_Num::two() ) {
-		e *= s / ( i * (i-BC_Num::one()) );
+	for ( i=3; 1; i += BC::two() ) {
+		e *= s / ( i * (i-BC::one()) );
 		if ( !e ) {
 			sc = z;
 			if ( !!m )
-				return -v / BC_Num::one();
-			return v / BC_Num::one();
+				return -v / BC::one();
+			return v / BC::one();
 		}
 		v += e;
 	}

@@ -55,10 +55,10 @@ int
 main(int argc,char **argv) {
 	{
 //	bc_valgrind = 1;
-	BC_Num A, B, C;
+	BC A, B, C;
 	bc_num a, b, c, q, r;
 
-	bc_init_numbers();	// Not required if BC_Num constructor happens first
+	bc_init_numbers();	// Not required if BC constructor happens first
 
 	bc_init_num(&a);
 	bc_init_num(&b);
@@ -107,12 +107,12 @@ main(int argc,char **argv) {
 	C = A * B;
 	C.dump("C:");
 
-	BC_Num D, Two("2");
+	BC D, Two("2");
 
 	D = C / Two;
 	D.dump("C/2:");	
 
-	BC_Num M, E;
+	BC M, E;
 
 	E = D / B;
 	M = D % B;
@@ -123,13 +123,13 @@ main(int argc,char **argv) {
 	E = B ^ Two;
 	E.dump("B^2:");
 
-	BC_Num Nine("9.0009"), N99(99);
+	BC Nine("9.0009"), N99(99);
 	Nine.dump("Nine:");	
 	N99.dump("N99:");
 
 	printf("Nine = %ld (as a long)\n",Nine.as_long());
 
-	BC_Num N22(22), N7(7), NQ, NR;
+	BC N22(22), N7(7), NQ, NR;
 
 	NQ = N22.divmod(N7,NR,3);
 	NQ.dump("NQ:");
@@ -139,15 +139,15 @@ main(int argc,char **argv) {
 	NQ.dump("NQ:");
 	printf("NQ.scale = %d\n",NQ.scale());
 
-	BC_Num N8(8), N2(2), N10(10);
+	BC N8(8), N2(2), N10(10);
 
 	NR = N8.raisemod(N2,N10,0);
 	NR.dump("raisemod:");
 
-	BC_Num Zero(0);
+	BC Zero(0);
 	printf("Zero = %d\n",!Zero);
 
-	BC_Num Nearly("0.001");
+	BC Nearly("0.001");
 
 	for ( int sc = 0; sc<5; ++sc )
 		printf("0.001 near_zero(%d) => %d\n",sc,Nearly.is_near_zero(sc));
@@ -156,7 +156,7 @@ main(int argc,char **argv) {
 	for ( int sc = 0; sc<5; ++sc )
 		printf("0.002 near_zero(%d) => %d\n",sc,Nearly.is_near_zero(sc));
 
-	BC_Num Big(9), Same(9), Small(8);
+	BC Big(9), Same(9), Small(8);
 
 	assert(Big > Small);
 	assert(Big >= Small);
@@ -166,7 +166,7 @@ main(int argc,char **argv) {
 	assert(Small < Big);
 	assert(Same <= Big);
 
-	BC_Num Neg("-65.04");
+	BC Neg("-65.04");
 	Neg.dump("Neg:");
 
 	assert(Neg.is_negative());
@@ -175,9 +175,9 @@ main(int argc,char **argv) {
 	N8 = N8.negate();
 	N8.dump("-N8:");
 
-	BC_Num::zero().dump("0:");
-	BC_Num::one().dump("1:");
-	BC_Num::two().dump("2:");
+	BC::zero().dump("0:");
+	BC::one().dump("1:");
+	BC::two().dump("2:");
 
 	bc_free_num(&a);
 	bc_free_num(&b);
@@ -186,10 +186,13 @@ main(int argc,char **argv) {
 	bc_free_num(&r);
 	}
 
-	BC_Num s, piby4(".7853");
+	BC s, piby4(".7853");
 
-	s = s.sin(piby4,12);
-	s.dump("sin(x):");
+	s = s.atan(1,20);
+	s.dump("atan(1):");
+
+//	s = s.sin(piby4,12);
+//	s.dump("sin(x):");
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
