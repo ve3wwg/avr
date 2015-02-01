@@ -17,6 +17,7 @@ protected:
 
 public:	BC();
 	inline BC(const BC& other) { num = bc_copy_num(other.num); }
+	BC(const BC& other,int scale);
 	inline BC(bc_num val) { num = val; }
 	BC(const char *val);
 	BC(int val);
@@ -25,6 +26,7 @@ public:	BC();
 	inline int scale() { return num->n_scale; }
 
 	BC& assign(const char *val);
+	BC& rescale(int scale);
 
 	inline void assign(const char *val,int scale) {
 		bc_str2num(&num,val,scale);
@@ -86,8 +88,9 @@ public:	BC();
 
 	BC negate() const;
 
-	BC sin(const BC& x,int scale);
-	BC atan(const BC& x,int scale);
+	BC sin(const BC& x,int scale) const;
+	BC cos(const BC& x,int scale) const;
+	BC atan(const BC& x,int scale) const;
 
 	void dump(const char *prefix=0) const;
 

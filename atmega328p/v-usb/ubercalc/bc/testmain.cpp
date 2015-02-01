@@ -186,13 +186,18 @@ main(int argc,char **argv) {
 	bc_free_num(&r);
 	}
 
-	BC s, piby4(".7853");
+	{
+		BC s, piby4(".7853");
+		BC x(piby4,30);
 
-	s = s.atan(1,20);
-	s.dump("atan(1):");
+		x.dump("x:");
 
-//	s = s.sin(piby4,12);
-//	s.dump("sin(x):");
+		s = s.sin(x,30);
+		s.dump("sin(x):");
+	
+		BC c = s.cos(x,30);
+		c.dump("cos(x):");
+	}
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing

@@ -7,12 +7,24 @@
 #include "bcnum.hpp"
 
 BC::BC() {
+
 	if ( !bc_inited )
 		bc_init_numbers();
 	bc_init_num(&num);
 }
 
+BC::BC(const BC& other,int scale) {
+
+	if ( !bc_inited )
+		bc_init_numbers();
+	bc_init_num(&num);
+	bc_divide(other.num,_one_,&num,scale);
+}
+
 BC::BC(const char *val) {
+
+	if ( !bc_inited )
+		bc_init_numbers();
 	bc_init_num(&num);
 
 	assign(val);
@@ -37,6 +49,15 @@ BC::BC(int val) {
 
 BC::~BC() {
 	bc_free_num(&num);
+}
+
+BC&
+BC::rescale(int scale) {
+
+	bc_num temp = bc_copy_num(num);
+	bc_divide(temp,_one_,&num,scale);
+	bc_free_num(&temp);
+	return *this;
 }
 
 BC&
@@ -326,7 +347,7 @@ BC::dump(const char *prefix) const {
 //////////////////////////////////////////////////////////////////////
 
 BC
-BC::atan(const BC& x,int scale) {
+BC::atan(const BC& x,int scale) const {
 	BC z(scale), a, Pt2(".2"), f, v, n, e, i, s, m(1), X(x);
 
 	// a is the value of a(.2) if it is needed.
@@ -405,39 +426,63 @@ BC::atan(const BC& x,int scale) {
 //////////////////////////////////////////////////////////////////////
 
 BC
-BC::sin(const BC& x,int scale) {
+BC::sin(const BC& x,int scale) const {
 	BC e, i, m, n, s, v, z(scale), sc, X(x), Four(4);
 
-	sc = BC("1.1") * z + BC::two();	// scale = 1.1 * z + 2
-	v = atan(BC::one(),scale);
+	sc = BC("1.1") * z + BC(2);	// scale = 1.1 * z + 2
+	v = atan(BC(1),sc.as_long());
+	v.rescale(scale);
 
 	if ( X.is_negative() ) {
-		m = BC::one();	// m = 1;
+		m = BC(1);		// m = 1;
 		X = -X;			// x = -x;
 	}
 
 	sc = 0;
 	n = (X / v + 2 ) / Four;
+	n.rescale(Four.scale());
+
 	X = X - Four * n * v;
 
-	if ( (n % BC::two()).as_long() )
+	if ( !!(n % BC(2)) )
 		X = -X;			// x = -x
 
 	// Do the loop.
-	sc = z + 2;
-	v = e = x;
+	v = e = X;
 	s = (-X) * X;
+	s.rescale(scale);
 
-	for ( i=3; 1; i += BC::two() ) {
-		e *= s / ( i * (i-BC::one()) );
+	int use_sc = z.as_long() + 2;
+
+	for ( i=3; 1; i += BC(2) ) {
+		BC div(i * (i - 1));
+		BC mul(s / div);
+		mul.rescale(s.scale());
+
+		// e *= s / ( i * (i-BC(1)) );
+		e *= mul;
+		e.rescale(use_sc);
+
 		if ( !e ) {
-			sc = z;
+			sc = z.as_long();
+			v.rescale(sc.as_long());
 			if ( !!m )
-				return -v / BC::one();
-			return v / BC::one();
+				return -v;
+			return v;
 		}
 		v += e;
 	}
 }
+
+BC
+BC::cos(const BC& x,int scale) const {
+	BC v, sc(scale);
+
+	sc *= BC("1.2");
+
+	int use_scale = sc.as_long();
+	v = sin(x + atan(1,use_scale) * BC(2),use_scale);
+	return v.rescale(scale);
+}	
 
 // End bcnum.cpp
