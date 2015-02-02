@@ -369,7 +369,8 @@ BC::dump(const char *prefix) const {
 
 BC
 BC::atan(const BC& x,int scale) {
-	BC z(scale), a, Pt2(".2"), f, v, n, e, i, s, m(1), X(x);
+	BC a, Pt2(".2",scale), f, v, n, e, s, X(x);
+	int m = 1, z = scale;
 
 	// a is the value of a(.2) if it is needed.
 	// f is the value to multiply by a in the return.
@@ -383,7 +384,7 @@ BC::atan(const BC& x,int scale) {
 
   	// Negative x?
 	if ( X.is_negative() ) {
-		m = BC(-1);			// m = -1;
+		m = -1;
 		X = -X;				// x = -x;
 	}
 
@@ -391,51 +392,61 @@ BC::atan(const BC& x,int scale) {
 	if ( X == BC(1) ) {
 #if 0
 		if ( scale <= 25 )
-			return BC(".7853981633974483096156608") / m;
+			return BC(".7853981633974483096156608") / BC(m);
 		if ( scale <= 40 )
-			return BC(".7853981633974483096156608458198757210492") / m;
+			return BC(".7853981633974483096156608458198757210492") / BC(m);
 		if ( scale <= 60 )
 #endif
-			return BC(".785398163397448309615660845819875721049292349843776455243736") / m;
+			return (BC(".785398163397448309615660845819875721049292349843776455243736") / BC(m)).rescale(scale);
 	}
 
 	if ( X == Pt2 ) {
 #if 0
 		if ( scale <= 25 )
-			return BC(".1973955598498807583700497") / m;
+			return (BC(".1973955598498807583700497") / BC(m)).rescale(scale);
 		if ( scale <= 40 )
-			return BC(".1973955598498807583700497651947902934475") / m;
+			return (BC(".1973955598498807583700497651947902934475") / BC(m)).rescale(scale);
 		if ( scale <= 60 )
 #endif
-			return BC(".197395559849880758370049765194790293447585103787852101517688") / m;
+			return (BC(".197395559849880758370049765194790293447585103787852101517688") / BC(m)).rescale(scale);
 	}
 
 	// Note: a and f are known to be zero due to being auto vars.
 	// Calculate atan of a known number.
 
 	if ( X > Pt2 ) {
-		z += BC(5);
-		a = Pt2;
+		scale = z + 5;
+		a = atan(Pt2,scale);
 	}
    
 	// Precondition x.
-	scale = z.as_long() + 3;
+	scale = z + 3;
 
 	while ( X > Pt2 ) {
 		++f;
-		X = (X - Pt2) / (BC(1) + X * Pt2);
+		// X = (X - Pt2) / (X * Pt2 + 1);
+		BC numerator(X - Pt2);
+		BC denominator(X * Pt2 + 1);
+		numerator.rescale(scale);
+		denominator.rescale(scale);
+		X = numerator / denominator;
+		X.rescale(scale);
 	}
 
 	// Initialize the series.
 	v = n = X;
-	s = (-X) * X;
+	s = ((-X) * X).rescale(scale);
 
 	// Calculate the series.
-	for ( i = 3; 1; i += BC(2) ) {
-		e = (n *= s) / i;
+	for ( int i = 3; 1; i += 2 ) {
+		(n *= s).rescale(scale);
+		e = (n / BC(i).rescale(scale)).rescale(scale);
 		if ( !e ) {
-			scale = z.as_long();
-			return (f*a+v) / m;
+			BC num(f * a + v);
+			BC den(m);
+			BC r(num / den);
+			r.rescale(z);
+			return r;
 		}
 		v += e;
 	}

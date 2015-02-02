@@ -58,20 +58,25 @@ out_dig(int dig,void *udata) {
 typedef BC (bcfunc_t)(const BC& x,int scale);
 
 static bool
-test_fun(int from,int to,const char *incr,bcfunc_t func,int scale) {
+test_fun(int from,int to,const char *incr,bcfunc_t func,int scale,const char *what,const char *bcfun) {
 	char *cp = 0;
 	char *xs = 0, *ys = 0;
 	BC x(from), end(to), by(incr);
 
 	while ( x <= end ) {
+		xs = x.as_string();
+		printf("%s(%s) => ",
+			what,xs);
+		fflush(stdout);
+
 		BC y = func(x,scale);
+		ys = y.as_string();
+		printf("%s; ",ys);
+		fflush(stdout);
 
 		std::stringstream ss;
 
-		xs = x.as_string();
-		ys = y.as_string();
-
-		ss << "echo 'scale=" << scale << "; s(" << xs << ")' | bc -l 2>&1";
+		ss << "echo 'scale=" << scale << "; " << bcfun << "(" << xs << ")' | bc -l 2>&1";
 		const std::string cmd = ss.str();
 		FILE *bc = popen(cmd.c_str(),"r");
 		char buf[1024];
@@ -84,6 +89,8 @@ test_fun(int from,int to,const char *incr,bcfunc_t func,int scale) {
 			BC check(buf);
 
 			if ( y != check ) {
+				fputs("failed!\n",stdout);
+
 				printf( "cmd: %s\n"
 					" y = %s\n"
 					"bc = %s%s\n"
@@ -100,6 +107,9 @@ test_fun(int from,int to,const char *incr,bcfunc_t func,int scale) {
 			assert(0);
 		}
 		pclose(bc);
+		fputs("ok!\n",stdout);
+		fflush(stdout);
+
 		free(xs);
 		free(ys);
 		ys = xs = 0;
@@ -271,9 +281,8 @@ main(int argc,char **argv) {
 	}
 #endif
 
-	if ( !test_fun(-6,+6,"0.031",BC::sin,33) )
-		puts("sin failed.\n");
-	else	puts("sin ok.\n");
+	test_fun(0,+3,"0.1",BC::atan,33,"atan","a");
+	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
