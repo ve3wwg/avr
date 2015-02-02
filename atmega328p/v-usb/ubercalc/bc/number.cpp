@@ -1244,7 +1244,9 @@ bc_raise(bc_num num1,bc_num num2,bc_num *result,int scale) {
 	// Check the exponent for scale digits and convert to a long.
 	if ( num2->n_scale != 0 )
 		bc_condition(bc_cond_nzero_exp_scale);
-		exponent = bc_num2long (num2);
+
+	exponent = bc_num2long(num2);
+
 	if ( exponent == 0 && (num2->n_len > 1 || num2->n_value[0] != 0) )
 		bc_condition(bc_cond_exponent_too_large);	// exponent too large in raise
 	
@@ -1446,12 +1448,12 @@ long2str(char *buf,unsigned bufsiz,long val) {
 //////////////////////////////////////////////////////////////////////
 
 void
-bc_out_long(long val,int size,int space,void (*out_char)(int)) {
+bc_out_long(long val,int size,int space,void (*out_char)(int,void *),void *udata) {
 	char digits[40], *dp;
 	int len, ix;
 	
 	if ( space )
-		(*out_char)(' ');
+		(*out_char)(' ',udata);
 
 //	sprintf(digits,"%ld",val);
 //	len = strlen(digits);
@@ -1460,12 +1462,12 @@ bc_out_long(long val,int size,int space,void (*out_char)(int)) {
 	len = strlen(dp);
 
 	while ( size > len ) {
-		(*out_char)('0');
+		(*out_char)('0',udata);
 		size--;
 	}
 
 	for ( ix=0; ix < len; ix++ )
-		(*out_char)(dp[ix]);
+		(*out_char)(dp[ix],udata);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1474,7 +1476,7 @@ bc_out_long(long val,int size,int space,void (*out_char)(int)) {
 //////////////////////////////////////////////////////////////////////
 
 void
-bc_out_num(bc_num num,int o_base,void (*out_char)(int),int leading_zero) {
+bc_out_num(bc_num num,int o_base,void (*out_char)(int,void *),int leading_zero,void *udata) {
 	char *nptr;
 	int  index, fdigit, pre_space;
 	stk_rec *digits, *temp;
@@ -1482,35 +1484,35 @@ bc_out_num(bc_num num,int o_base,void (*out_char)(int),int leading_zero) {
 	
 	// The negative sign if needed.
 	if ( num->n_sign == MINUS )
-		(*out_char)('-');
+		(*out_char)('-',udata);
 	
 	// Output the number.
 	if ( bc_is_zero(num) )
-		(*out_char)('0');
+		(*out_char)('0',udata);
 	else
 		if ( o_base == 10 ) {
 			// The number is in base 10, do it the fast way.
 			nptr = num->n_value;
 			if ( num->n_len > 1 || *nptr != 0 )
 				for ( index=num->n_len; index>0; index-- )
-					(*out_char)(BCD_CHAR(*nptr++));
+					(*out_char)(BCD_CHAR(*nptr++),udata);
 			else
 				nptr++;
 	
 			if ( leading_zero && bc_is_zero(num) )
-				(*out_char)('0');
+				(*out_char)('0',udata);
 	
 			// Now the fraction.
 			if ( num->n_scale > 0 ) {
-				(*out_char)('.');
+				(*out_char)('.',udata);
 
 				for ( index=0; index<num->n_scale; index++ )
-					(*out_char)(BCD_CHAR(*nptr++));
+					(*out_char)(BCD_CHAR(*nptr++),udata);
 			}
 		} else	{
 			// special case ...
 			if ( leading_zero && bc_is_zero(num) )
-				(*out_char)('0');
+				(*out_char)('0',udata);
 	
 			// The number is some other base.
 			digits = NULL;
@@ -1545,16 +1547,16 @@ bc_out_num(bc_num num,int o_base,void (*out_char)(int),int leading_zero) {
 					temp = digits;
 					digits = digits->next;
 					if ( o_base <= 16 )
-						(*out_char)(ref_str[(int)temp->digit]);
+						(*out_char)(ref_str[(int)temp->digit],udata);
 					else
-						bc_out_long(temp->digit, max_o_digit->n_len, 1, out_char);
+						bc_out_long(temp->digit, max_o_digit->n_len, 1, out_char,udata);
 					free(temp);
 				}
 			}
 	
 			// Get and print the digits of the fraction part.
 			if ( num->n_scale > 0 ) {
-				(*out_char)('.');
+				(*out_char)('.',udata);
 				pre_space = 0;
 				t_num = bc_copy_num(_one_);
 
@@ -1564,9 +1566,9 @@ bc_out_num(bc_num num,int o_base,void (*out_char)(int),int leading_zero) {
 					bc_int2num(&int_part, fdigit);
 					bc_sub(frac_part, int_part, &frac_part, 0);
 					if ( o_base <= 16 )
-						(*out_char)(ref_str[fdigit]);
+						(*out_char)(ref_str[fdigit],udata);
 					else	{
-						bc_out_long(fdigit, max_o_digit->n_len, pre_space, out_char);
+						bc_out_long(fdigit, max_o_digit->n_len, pre_space, out_char,udata);
 						pre_space = 1;
 					}
 					bc_multiply(t_num, base, &t_num, 0);
@@ -1662,7 +1664,7 @@ bc_int2num(bc_num *num,int val) {
 //////////////////////////////////////////////////////////////////////
 
 char
-*num2str(bc_num num) {
+*bc_num2str(bc_num num) {
 	char *str, *sptr;
 	char *nptr;
 	int  index, signch;
