@@ -91,10 +91,12 @@ public:	BC();
 
 	BC negate() const;
 
+	static BC sqrt(const BC& x,int scale);
 	static BC sin(const BC& x,int scale);
 	static BC cos(const BC& x,int scale);
 	static BC atan(const BC& x,int scale);
 	static BC e(const BC& x,int scale);
+	static BC ln(const BC& x,int scale);
 
 	void dump(const char *prefix=0) const;
 
