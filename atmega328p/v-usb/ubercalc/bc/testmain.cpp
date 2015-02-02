@@ -281,8 +281,10 @@ main(int argc,char **argv) {
 	}
 #endif
 
-	test_fun(0,+3,"0.1",BC::atan,33,"atan","a");
-	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
+//	test_fun(0,+3,"0.1",BC::atan,33,"atan","a");
+//	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
+//	test_fun(-5,+5,"0.03",BC::e,33,"e","e");
+	test_fun(-5,+5,"0.03",BC::ln,33,"ln","l");
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing

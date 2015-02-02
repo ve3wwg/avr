@@ -251,7 +251,7 @@ BC::operator--() {
 BC
 BC::operator--(int) {
 	bc_num temp = bc_copy_num(num);
-	bc_sub(_one_,num,&num,num->n_scale);
+	bc_sub(num,_one_,&num,num->n_scale);
 	return BC(temp);
 }
 
@@ -459,45 +459,43 @@ BC::atan(const BC& x,int scale) {
 
 BC
 BC::sin(const BC& x,int scale) {
-	BC e, m, n, s, v, z(scale), sc, X(x), Four(4);
+	BC e, n, s, v, sc, X(x), Four(4);
+	int z = scale, m = 0;
 
 	sc = BC("1.1") * z + BC(2);	// scale = 1.1 * z + 2
 	v = BC::atan(BC(1),sc.as_long());
-	v.rescale(scale);
 
 	if ( X.is_negative() ) {
-		m = BC(1);		// m = 1;
+		m = 1;
 		X = -X;			// x = -x;
 	}
 
 	sc = 0;
 	n = (X / v + 2 ) / Four;
 	n.rescale(Four.scale());
-
 	X = X - Four * n * v;
 
 	if ( !!(n % BC(2)) )
 		X = -X;			// x = -x
 
 	// Do the loop.
+	int use_sc = z + 2;
+
 	v = e = X;
 	s = (-X) * X;
-	s.rescale(scale);
-
-	int use_sc = z.as_long() + 2;
+	s.rescale(X.scale());
 
 	for ( int i=3; 1; i += 2 ) {
 		BC div(i * (i - 1));
 		BC mul(s / div);
-		mul.rescale(s.scale());
+		mul.rescale(use_sc);
 
 		// e *= s / ( i * (i-BC(1)) );
 		e *= mul;
-		e.rescale(use_sc);
+		e.rescale(s.scale());
 
 		if ( !e ) {
-			sc = z.as_long();
-			v.rescale(sc.as_long());
+			v.rescale(z);
 			if ( !!m )
 				return -v;
 			return v;
@@ -519,8 +517,8 @@ BC::cos(const BC& x,int scale) {
 
 BC
 BC::e(const BC& x,int scale) {
-	int m = 0;
-	BC a, d(1), e, f, n, v, z(scale), X(x);
+	int m = 0, z = scale;
+	BC a, d(1), e, f, n, v, X(x);
 
 	// a - holds x^y of x^y/y!
 	// d - holds y!
@@ -539,13 +537,13 @@ BC::e(const BC& x,int scale) {
 	} 
 
 	// Precondition x.
-	n = z + 6 + BC(".44") * X;
+	n = BC(z) + 6 + BC(".44") * X;
 	int use_scale = X.scale() + 1;
 
 	while ( X > 1 ) {
 		++f;
-		X /= BC(2);
 		X.rescale(use_scale);
+		X /= BC(2);
 		use_scale += 1;
 	}
 
@@ -558,12 +556,15 @@ BC::e(const BC& x,int scale) {
 	for ( int i=2; 1; ++i ) {
 		e = (a *= X) / (d *= BC(i)).rescale(use_scale);
 		e.rescale(use_scale);
+
 		if ( e == 0 ) {
 			if ( f > 0 )
-				while ( f-- != 0 ) 
+				while ( f-- != 0 ) {
 					v = v * v;
+					v.rescale(use_scale);
+				}
 
-			use_scale = z.as_long();
+			use_scale = z;
 
 			if ( m ) {
 				v = BC(1) / v;
