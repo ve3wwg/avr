@@ -335,6 +335,13 @@ BC::operator%=(const BC& rvalue) {
 	return *this;
 }
 
+BC
+BC::sqrt(const BC& x,int scale) {
+	bc_num num = bc_copy_num(x.num);
+	bc_sqrt(&num,scale);
+	return BC(num);
+}
+
 static void
 out_dig(int c) {
 	putchar(c);
@@ -558,47 +565,49 @@ BC::e(const BC& x,int scale) {
 	}
 }
 
-#if 0
-/* Natural log. Uses the fact that ln(x^2) = 2*ln(x)
-    The series used is:
-       ln(x) = 2(a+a^3/3+a^5/5+...) where a=(x-1)/(x+1)
-*/
+//////////////////////////////////////////////////////////////////////
+// Natural log. Uses the fact that ln(x^2) = 2*ln(x)
+// The series used is:
+//   ln(x) = 2(a+a^3/3+a^5/5+...) where a=(x-1)/(x+1)
+//////////////////////////////////////////////////////////////////////
 
-define l(x) {
-  auto e, f, i, m, n, v, z
+BC
+BC::ln(const BC& x,int scale) {
 
-  /* return something for the special case. */
-  if (x <= 0) return ((1 - 10^scale)/1)
+	// return something for the special case.
+	if ( x.is_negative() )
+		return ((BC(1) - (BC(10) ^ BC(scale))) / BC(1)).rescale(scale);
 
-  /* Precondition x to make .5 < x < 2.0. */
-  z = scale;
-  scale = 6 + scale;
-  f = 2;
-  i=0
-  while (x >= 2) {  /* for large numbers */
-    f *= 2;
-    x = sqrt(x);
-  }
-  while (x <= .5) {  /* for small numbers */
-    f *= 2;
-    x = sqrt(x);
-  }
+	BC e, f(2), m, n, v, X(x);
+	int i = 0, z = scale;
 
-  /* Set up the loop. */
-  v = n = (x-1)/(x+1)
-  m = n*n
+	// Precondition x to make .5 < x < 2.0.
+	scale = 6 + scale;
 
-  /* Sum the series. */
-  for (i=3; 1; i+=2) {
-    e = (n *= m) / i
-    if (e == 0) {
-      v = f*v
-      scale = z
-      return (v/1)
-    }
-    v += e
-  }
+	while ( X >= 2 ) {	// for large numbers
+		f *= BC(2);
+		X = BC::sqrt(X,scale);
+	}
+
+	while ( X <= BC(".5") ) { // for small numbers
+		f *= BC(2);
+		X = BC::sqrt(X,scale);
+	}
+	
+	// Set up the loop.
+	v = n = ((X-1) / (X+1)).rescale(scale);
+	m = n * n;
+	
+	// Sum the series.
+	for ( i=3; 1; i += 2 ) {
+		e = ((n *= m) / i).rescale(scale);
+
+		if ( e == 0 ) {
+			v = (f * v).rescale(z);
+			return v;
+		}
+		v += e;
+	}
 }
-#endif    
 
 // End bcnum.cpp
