@@ -343,7 +343,7 @@ BC::sqrt(const BC& x,int scale) {
 }
 
 static void
-out_dig(int c) {
+out_dig(int c,void *udata) {
 	putchar(c);
 }
 
@@ -351,7 +351,7 @@ void
 BC::dump(const char *prefix) const {
 	if ( prefix )
 		fputs(prefix,stdout);
-	bc_out_num(num,10,out_dig,0);	
+	bc_out_num(num,10,out_dig,0,0);	
 	putchar('\n');
 	fflush(stdout);
 }

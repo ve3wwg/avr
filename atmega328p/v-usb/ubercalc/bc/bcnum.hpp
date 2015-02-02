@@ -47,6 +47,10 @@ public:	BC();
 		return bc_num2long(num);
 	}
 
+	inline char *as_string() {
+		return bc_num2str(num);
+	}
+
 	bool operator!() const;
 	bool is_near_zero(int scale) const;
 	bool is_negative() const;
