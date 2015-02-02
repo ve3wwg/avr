@@ -202,6 +202,14 @@ main(int argc,char **argv) {
 		e.dump("e:");
 	}
 
+	{
+		BC y = BC::ln(BC("3.5"),24);
+
+		y.dump("ln(3.5) = ");
+		y = BC::ln(BC("-3.5"),24);
+		y.dump("ln(-3.5) = ");
+	}
+
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
 
