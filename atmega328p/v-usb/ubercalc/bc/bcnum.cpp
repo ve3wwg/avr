@@ -506,13 +506,13 @@ BC::sin(const BC& x,int scale) {
 
 BC
 BC::cos(const BC& x,int scale) {
+	int z = scale;
 	BC v, sc(scale);
 
 	sc *= BC("1.2");
-
 	int use_scale = sc.as_long();
 	v = sin(x + BC::atan(1,use_scale) * BC(2),use_scale);
-	return v.rescale(scale);
+	return v.rescale(z);
 }	
 
 BC
@@ -586,6 +586,11 @@ BC::e(const BC& x,int scale) {
 BC
 BC::ln(const BC& x,int scale) {
 
+	if ( !x ) {
+		bc_condition(bc_cond_math_error);
+		return BC(0);
+	}
+
 	// return something for the special case.
 	if ( x.is_negative() )
 		return ((BC(1) - (BC(10) ^ BC(scale))) / BC(1)).rescale(scale);
@@ -607,8 +612,9 @@ BC::ln(const BC& x,int scale) {
 	}
 	
 	// Set up the loop.
-	v = n = ((X-1) / (X+1)).rescale(scale);
-	m = n * n;
+	BC num(X - 1,scale), den(X+1,scale);
+	v = n = (num / den).rescale(scale);
+	m = (n * n).rescale(scale);
 	
 	// Sum the series.
 	for ( i=3; 1; i += 2 ) {

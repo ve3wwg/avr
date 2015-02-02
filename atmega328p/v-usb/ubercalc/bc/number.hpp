@@ -71,7 +71,8 @@ typedef enum {
 	bc_cond_exponent_too_large,	// exponent too large
 	bc_cond_nzero_base_scale,	// non-zero scale in base
 	bc_cond_nzero_exp_scale,	// non-zero scale in exponent
-	bc_cond_nzero_mod_scale		// non-zero scale in modulus
+	bc_cond_nzero_mod_scale,	// non-zero scale in modulus
+	bc_cond_math_error		// ln(0) for example
 } bc_condition_t;
 
 extern "C" {

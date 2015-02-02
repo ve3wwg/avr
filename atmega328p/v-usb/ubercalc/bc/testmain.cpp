@@ -34,6 +34,9 @@ bc_condition(bc_condition_t cond) {
 	case bc_cond_nzero_mod_scale:		// non-zero scale in modulus
 		fputs("bc: Non-zero scale in modulus.\n",stderr);
 		break;
+	case bc_cond_math_error:
+		fputs("bc: Math error.\n",stderr);
+		break;
 	default :
 		printf("Unknown bc_condition %d\n",cond);
 		assert(0);
@@ -62,6 +65,9 @@ test_fun(int from,int to,const char *incr,bcfunc_t func,int scale,const char *wh
 	char *cp = 0;
 	char *xs = 0, *ys = 0;
 	BC x(from), end(to), by(incr);
+
+	if ( !strcmp(what,"ln") && from == 0 )
+		x.assign("0.001");
 
 	while ( x <= end ) {
 		xs = x.as_string();
@@ -281,10 +287,13 @@ main(int argc,char **argv) {
 	}
 #endif
 
-//	test_fun(0,+3,"0.1",BC::atan,33,"atan","a");
-//	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
-//	test_fun(-5,+5,"0.03",BC::e,33,"e","e");
-	test_fun(-5,+5,"0.03",BC::ln,33,"ln","l");
+	test_fun(0,+3,"0.03",BC::atan,33,"atan","a");
+	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
+	test_fun(-6,+6,"0.01",BC::cos,33,"cos","c");
+	test_fun(0,+5,"0.01",BC::sqrt,33,"sqrt","sqrt");
+	test_fun(-5,+5,"0.03",BC::e,33,"e","e");
+	test_fun(0,+5,"0.01",BC::ln,33,"ln","l");
+	test_fun(-3,-1,"0.01",BC::ln,33,"ln","l");
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
