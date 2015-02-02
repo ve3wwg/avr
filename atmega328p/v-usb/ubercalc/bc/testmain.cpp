@@ -11,7 +11,9 @@
 #include <string.h>
 #include <assert.h>
 
-// #include "number.hpp"
+#include <string>
+#include <sstream>
+
 #include "bcnum.hpp"
 
 extern "C" {
@@ -46,13 +48,71 @@ bc_out_of_memory() {
 
 } // extern "C"
 
+#if 0
 static void
-out_dig(int dig) {
+out_dig(int dig,void *udata) {
 	putchar(dig);
+}
+#endif
+
+typedef BC (bcfunc_t)(const BC& x,int scale);
+
+static bool
+test_fun(int from,int to,const char *incr,bcfunc_t func,int scale) {
+	char *cp = 0;
+	char *xs = 0, *ys = 0;
+	BC x(from), end(to), by(incr);
+
+	while ( x <= end ) {
+		BC y = func(x,scale);
+
+		std::stringstream ss;
+
+		xs = x.as_string();
+		ys = y.as_string();
+
+		ss << "echo 'scale=" << scale << "; s(" << xs << ")' | bc -l 2>&1";
+		const std::string cmd = ss.str();
+		FILE *bc = popen(cmd.c_str(),"r");
+		char buf[1024];
+
+		if ( fgets(buf,sizeof buf,bc) ) {
+			cp = strchr(buf,'\n');
+			if ( cp )
+				*cp = 0;
+
+			BC check(buf);
+
+			if ( y != check ) {
+				printf( "cmd: %s\n"
+					" y = %s\n"
+					"bc = %s%s\n"
+					" x = %s\n",
+					cmd.c_str(),
+					ys,
+					*buf == '.' ? "0" : "",
+					buf,xs);
+				free(xs);
+				free(ys);
+				return false;
+			}
+		} else	{
+			assert(0);
+		}
+		pclose(bc);
+		free(xs);
+		free(ys);
+		ys = xs = 0;
+
+		x += by;
+	}
+
+	return true;
 }
 
 int
 main(int argc,char **argv) {
+#if 0
 	{
 //	bc_valgrind = 1;
 	BC A, B, C;
@@ -209,6 +269,11 @@ main(int argc,char **argv) {
 		y = BC::ln(BC("-3.5"),24);
 		y.dump("ln(-3.5) = ");
 	}
+#endif
+
+	if ( !test_fun(-6,+6,"0.031",BC::sin,33) )
+		puts("sin failed.\n");
+	else	puts("sin ok.\n");
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
