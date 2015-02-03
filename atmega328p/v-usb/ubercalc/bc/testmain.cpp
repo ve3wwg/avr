@@ -287,13 +287,17 @@ main(int argc,char **argv) {
 	}
 #endif
 
-	test_fun(0,+3,"0.03",BC::atan,33,"atan","a");
+	test_fun(0,+3,"0.03",BC::arctan,33,"arctan","a");
 	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
 	test_fun(-6,+6,"0.01",BC::cos,33,"cos","c");
 	test_fun(0,+5,"0.01",BC::sqrt,33,"sqrt","sqrt");
 	test_fun(-5,+5,"0.03",BC::e,33,"e","e");
 	test_fun(0,+5,"0.01",BC::ln,33,"ln","l");
 	test_fun(-3,-1,"0.01",BC::ln,33,"ln","l");
+
+	char *pi = BC::pi(50).as_string();
+	printf("pi(50) = %s\n",pi);
+	free(pi);
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing

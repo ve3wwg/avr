@@ -368,7 +368,7 @@ BC::dump(const char *prefix) const {
 //////////////////////////////////////////////////////////////////////
 
 BC
-BC::atan(const BC& x,int scale) {
+BC::arctan(const BC& x,int scale) {
 	BC a, Pt2(".2",scale), f, v, n, e, s, X(x);
 	int m = 1, z = scale;
 
@@ -412,11 +412,11 @@ BC::atan(const BC& x,int scale) {
 	}
 
 	// Note: a and f are known to be zero due to being auto vars.
-	// Calculate atan of a known number.
+	// Calculate arctan of a known number.
 
 	if ( X > Pt2 ) {
 		scale = z + 5;
-		a = atan(Pt2,scale);
+		a = arctan(Pt2,scale);
 	}
    
 	// Precondition x.
@@ -463,7 +463,7 @@ BC::sin(const BC& x,int scale) {
 	int z = scale, m = 0;
 
 	sc = BC("1.1") * z + BC(2);	// scale = 1.1 * z + 2
-	v = BC::atan(BC(1),sc.as_long());
+	v = BC::arctan(BC(1),sc.as_long());
 
 	if ( X.is_negative() ) {
 		m = 1;
@@ -511,7 +511,7 @@ BC::cos(const BC& x,int scale) {
 
 	sc *= BC("1.2");
 	int use_scale = sc.as_long();
-	v = sin(x + BC::atan(1,use_scale) * BC(2),use_scale);
+	v = sin(x + BC::arctan(1,use_scale) * BC(2),use_scale);
 	return v.rescale(z);
 }	
 
@@ -627,5 +627,28 @@ BC::ln(const BC& x,int scale) {
 		v += e;
 	}
 }
+
+BC
+BC::pi(int scale) {
+	return (BC(4,scale) * arctan(BC(1),scale)).rescale(scale);
+}
+
+//////////////////////////////////////////////////////////////////////
+// arcsin(x) = arctan(x / sqrt(1 – x2))
+// arccos(x) = arctan(sqrt(1 – x2 )/ x)
+// arccot(x) = π/2 – arctan(x)
+// arcsec(x) = arctan(sqrt(x2 – 1))
+// arccsc(x) = arctan(1/sqrt(x2 – 1))
+//////////////////////////////////////////////////////////////////////
+
+#if 0
+BC
+BC::arcsin(const BC& x,int scale) {
+	BC v1mx2(1);
+
+	(v1mx2 -= x * x).rescale(scale);
+	return arctan(x / v1mx2);
+}
+#endif
 
 // End bcnum.cpp
