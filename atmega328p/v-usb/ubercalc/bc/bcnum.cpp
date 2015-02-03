@@ -388,6 +388,7 @@ BC::arctan(const BC& x,int scale) {
 		X = -X;				// x = -x;
 	}
 
+#if 0	// Leave out for compact code
   	// Special case and for fast answers
 	if ( X == BC(1) ) {
 #if 0
@@ -410,6 +411,7 @@ BC::arctan(const BC& x,int scale) {
 #endif
 			return (BC(".197395559849880758370049765194790293447585103787852101517688") / BC(m)).rescale(scale);
 	}
+#endif
 
 	// Note: a and f are known to be zero due to being auto vars.
 	// Calculate arctan of a known number.
@@ -630,7 +632,13 @@ BC::ln(const BC& x,int scale) {
 
 BC
 BC::pi(int scale) {
-	return (BC(4,scale) * arctan(BC(1),scale)).rescale(scale);
+	BC Pt2(".2"), n239(1), t(16), t2(4);
+
+	// 16 * a(1/5) - 4 * a(1/239)
+	(n239 /= BC(239,scale)).rescale(scale);
+	t *= arctan(Pt2,scale);
+	t2 *= arctan(n239,scale);
+	return (t - t2).rescale(scale);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -641,14 +649,49 @@ BC::pi(int scale) {
 // arccsc(x) = arctan(1/sqrt(x2 – 1))
 //////////////////////////////////////////////////////////////////////
 
-#if 0
 BC
 BC::arcsin(const BC& x,int scale) {
-	BC v1mx2(1);
+	BC x2(x*x);
 
-	(v1mx2 -= x * x).rescale(scale);
-	return arctan(x / v1mx2);
+	if ( x2 == BC(1) )
+		return x * BC::arctan(BC(1),scale) * BC(2);
+
+	x2.rescale(scale);
+	BC v1mx2(sqrt(BC(1)-x2,scale));
+	return BC::arctan(x / v1mx2,scale);
 }
-#endif
+
+BC
+BC::arccos(const BC& x,int scale) {
+
+	if ( !x )
+		return (pi(scale) / BC(2)).rescale(scale);
+
+	BC x2(x*x,scale);
+	BC q(sqrt(BC(1)-x2,scale));
+	return arctan(q/x,scale);
+}
+
+BC
+BC::tan(const BC& x,int scale) {
+	BC cx(BC::cos(x,scale));
+	
+	if ( !cx ) {
+		bc_condition(bc_cond_math_error);
+		return BC(0);
+	}
+
+	return (BC::sin(x,scale) / cx).rescale(scale);
+}
+
+BC
+BC::degrees(const BC& radians,int scale) {
+	return (radians * BC(180) / pi(scale)).rescale(scale);
+}
+
+BC
+BC::radians(const BC& degrees,int scale) {
+	return (degrees * pi(scale) / BC(180)).rescale(scale);
+}
 
 // End bcnum.cpp

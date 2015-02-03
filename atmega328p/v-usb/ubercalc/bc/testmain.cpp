@@ -287,6 +287,7 @@ main(int argc,char **argv) {
 	}
 #endif
 
+#if 0
 	test_fun(0,+3,"0.03",BC::arctan,33,"arctan","a");
 	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
 	test_fun(-6,+6,"0.01",BC::cos,33,"cos","c");
@@ -298,6 +299,51 @@ main(int argc,char **argv) {
 	char *pi = BC::pi(50).as_string();
 	printf("pi(50) = %s\n",pi);
 	free(pi);
+#endif
+	{
+		BC x(1), z;
+
+		z = BC::arcsin(x,28);
+		printf("z=%s for arcsin(1)\n",z.as_string());
+	}
+	{
+		BC x(".704"), y, z;
+
+		y = BC::sin(x,28);
+		z = BC::arcsin(y,28);
+		printf("sin: x=%s, y=%s, z=%s\n",x.as_string(),y.as_string(),z.as_string());
+	}
+	{
+		BC x(0), z;
+		
+		z = BC::arccos(0,28);
+		printf("z=%s for arccos(0)\n",z.as_string());
+	}
+	{
+		BC x(".704"), y, z;
+
+		y = BC::cos(x,28);
+		z = BC::arccos(y,28);
+		printf("cos: x=%s, y=%s, z=%s\n",x.as_string(),y.as_string(),z.as_string());
+	}
+
+	{
+		BC rad(BC::pi(32)/BC(4),32), deg, rad2;
+
+		deg = BC::degrees(rad,32);
+		rad2 = BC::radians(deg,32);
+
+		printf("r=%s, d=%s, r2=%s\n",
+			rad.as_string(),
+			deg.as_string(),
+			rad2.as_string());
+	}
+	{
+		BC x(".6"), t;
+
+		t = BC::tan(x,40);
+		printf("tan(%s,40) = %s\n",x.as_string(),t.as_string());
+	}
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
