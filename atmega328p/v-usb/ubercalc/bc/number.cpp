@@ -53,8 +53,6 @@ bc_num _zero_;
 bc_num _one_;
 bc_num _two_;
 
-static bc_num _bc_Free_list = NULL;
-
 static inline void *
 bc_malloc(unsigned bytes) {
 	void *rp = malloc(bytes);
@@ -73,12 +71,7 @@ bc_num
 bc_new_num(int length,int scale) {
 	bc_num temp;
 
-	if (_bc_Free_list != NULL) {
-		temp = _bc_Free_list;
-		_bc_Free_list = temp->n_next;
-	} else	{
-		temp = (bc_num) bc_malloc(sizeof(bc_struct));
-	}
+	temp = (bc_num) bc_malloc(sizeof(bc_struct));
 	temp->n_sign = PLUS;
 	temp->n_len = length;
 	temp->n_scale = scale;
@@ -104,13 +97,7 @@ bc_free_num(bc_num *num) {
 	if ( (*num)->n_refs == 0 ) {
 		if ( (*num)->n_ptr )
 			free((*num)->n_ptr);
-		if ( !bc_valgrind ) {
-			(*num)->n_next = _bc_Free_list;
-			_bc_Free_list = *num;
-		} else	{
-			// Free everything when valgrind testing
-			free(*num);
-		}
+		free(*num);
 	}
 
 	*num = NULL;
@@ -646,13 +633,7 @@ static bc_num
 new_sub_num(int length,int scale,char *value) {
 	bc_num temp;
 	
-	if ( _bc_Free_list != NULL ) {
-		temp = _bc_Free_list;
-		_bc_Free_list = temp->n_next;
-	} else {
-		temp = (bc_num) bc_malloc(sizeof(bc_struct));
-	}
-
+	temp = (bc_num) bc_malloc(sizeof(bc_struct));
 	temp->n_sign = PLUS;
 	temp->n_len = length;
 	temp->n_scale = scale;
