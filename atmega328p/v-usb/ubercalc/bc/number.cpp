@@ -1321,9 +1321,11 @@ bc_sqrt(bc_num *num,int scale) {
 	
 	// Initial checks.
 	cmp_res = bc_compare(*num,_zero_);
-	if ( cmp_res < 0 )
+
+	if ( cmp_res < 0 ) {
+		bc_condition(bc_cond_math_error);
 		return 0;		// error
-	else	{
+	} else	{
 		if ( cmp_res == 0 ) {
 			bc_free_num(num);
 			*num = bc_copy_num(_zero_);
