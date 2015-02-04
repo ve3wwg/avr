@@ -37,10 +37,12 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "config.hpp"
-#include "number.hpp"
+#include "config.hpp"		// Modified Mac OSX config for AVR use
+#include "number.hpp"		// Extracted bc's number library header
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 int bc_valgrind = 0;		// App sets to 1 when valgrind testing
 int bc_inited = 0;		// Set non-zero after bc_init_numbers() called
@@ -49,17 +51,24 @@ int bc_inited = 0;		// Set non-zero after bc_init_numbers() called
 // Storage used for special numbers.
 //////////////////////////////////////////////////////////////////////
 
-bc_num _zero_;
-bc_num _one_;
-bc_num _two_;
+bc_num _zero_;			// Shared zero value
+bc_num _one_;			// Shared 1 value
+bc_num _two_;			// Shared 2 value
+
+//////////////////////////////////////////////////////////////////////
+// This is a common malloc() routine for this library, so that
+// out of memory can be detected and handled from a central point.
+//////////////////////////////////////////////////////////////////////
 
 static inline void *
 bc_malloc(unsigned bytes) {
 	void *rp = malloc(bytes);
 
-	if ( !rp )
-		bc_out_of_memory();
+	assert(sizeof(unsigned) >= 4);		// Adjust bits in bc_num if this is smaller
+	assert(sizeof(int) >= 4);		// ditto
 
+	if ( !rp )
+		bc_out_of_memory();		// Invoke's application's handler
 	return rp;
 }
 
@@ -118,6 +127,10 @@ bc_init_numbers() {
 	_two_->n_value[0] = 2;
 	bc_inited = 1;
 }
+
+//////////////////////////////////////////////////////////////////////
+// Only required for use when testing with valgrind for mem leaks
+//////////////////////////////////////////////////////////////////////
 
 void
 bc_fini_numbers() {
@@ -435,7 +448,6 @@ _bc_do_add(bc_num n1,bc_num n2,int scale_min) {
 	return sum;
 }
 
-
 //////////////////////////////////////////////////////////////////////
 // Perform subtraction: N2 is subtracted from N1 and the value is
 // returned.  The signs of N1 and N2 are ignored.  Also, N1 is
@@ -616,13 +628,8 @@ bc_add(bc_num n1,bc_num n2,bc_num *result,int scale_min) {
 // Recursive vs non-recursive multiply crossover ranges.
 //////////////////////////////////////////////////////////////////////
 
-#if defined(MULDIGITS)
-#include "muldigits.h"
-#else
 #define MUL_BASE_DIGITS 80
-#endif
-
-int mul_base_digits = MUL_BASE_DIGITS;
+static int mul_base_digits = MUL_BASE_DIGITS;
 #define MUL_SMALL_DIGITS mul_base_digits/4
 
 //////////////////////////////////////////////////////////////////////
@@ -1438,9 +1445,6 @@ bc_out_long(long val,int size,int space,void (*out_char)(int,void *),void *udata
 	if ( space )
 		(*out_char)(' ',udata);
 
-//	sprintf(digits,"%ld",val);
-//	len = strlen(digits);
-
 	dp = long2str(digits,40,val);
 	len = strlen(dp);
 
@@ -1766,6 +1770,8 @@ bc_str2num(bc_num *num,const char *str,int scale) {
 	}
 }
 
+#ifdef __cplusplus
 } // extern "C"
+#endif
 
 // End number.cpp

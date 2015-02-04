@@ -29,8 +29,8 @@
 //                 Bellingham, WA 98226-9062
 // 
 // 
-// Modified by Warren W. Gay VE3WWG  ve3wwg@gmail.com
-// 
+// Modified for AVR use by Warren W. Gay VE3WWG  ve3wwg@gmail.com
+// Tue Feb 3 19:51:08 2015
 ///////////////////////////////////////////////////////////////////////
 
 #ifndef NUMBER_HPP
@@ -45,8 +45,6 @@
 
 #define BASE 10
 
-// Some useful macros and constants.
-
 #define CH_VAL(c)     (c - '0')
 #define BCD_CHAR(d)   (d + '0')
 
@@ -54,6 +52,7 @@
 #undef MIN
 #undef MAX
 #endif
+
 #define MAX(a,b)      ((a)>(b)?(a):(b))
 #define MIN(a,b)      ((a)>(b)?(b):(a))
 #define ODD(a)        ((a)&1)
@@ -67,6 +66,9 @@
 #define LONG_MAX 0x7ffffff
 #endif
 
+#define	PLUS	0	
+#define	MINUS	1
+
 typedef enum {
 	bc_cond_exponent_too_large,	// exponent too large
 	bc_cond_nzero_base_scale,	// non-zero scale in base
@@ -75,7 +77,9 @@ typedef enum {
 	bc_cond_math_error		// ln(0) for example
 } bc_condition_t;
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 	extern int bc_valgrind;		// Set non-zero for valgrind testing
 	extern int bc_inited;		// Non-zero when bc_init_numbers() called
@@ -83,25 +87,22 @@ extern "C" {
 	extern void bc_condition(bc_condition_t cond);
 	extern void bc_out_of_memory();
 
-	typedef enum {PLUS, MINUS} sign;
-
 	typedef struct bc_struct *bc_num;
 
 	typedef struct bc_struct {
-	      sign  n_sign;
-	      int   n_len;	// The number of digits before the decimal point.
-	      int   n_scale;	// The number of digits after the decimal point.
-	      int   n_refs;     // The number of pointers to this number.
-//	      bc_num n_next;	// Linked list for available list.
-	      char *n_ptr;	// The pointer to the actual storage.
+		unsigned	n_sign : 1;	// 1=negative
+		unsigned	n_refs : 31;	// The number of pointers to this number.
+	      	unsigned	n_len : 16;	// The number of digits before the decimal point.
+	      	unsigned	n_scale : 16;	// The number of digits after the decimal point.
+
+	      	char *n_ptr;	// The pointer to the actual storage.
 				// If NULL, n_value points to the inside of
 				// another number (bc_multiply...) and should
 				// not be "freed."
-	      char *n_value;	// The number. Not zero char terminated.
+	      	char *n_value;	// The number. Not zero char terminated.
 				// May not point to the same place as n_ptr as
 				// in the case of leading zeros generated.
 	} bc_struct;
-
 
 	// Global numbers.
 	extern bc_num _zero_;
@@ -139,9 +140,9 @@ extern "C" {
 
 	void bc_out_num(bc_num num,int o_base,void (*out_char)(int,void *),int leading_zero,void *udata);
 
+#ifdef __cplusplus
 } // extern "C"
-
-
+#endif
 #endif // NUMBER_HPP
 
 // End number.hpp
