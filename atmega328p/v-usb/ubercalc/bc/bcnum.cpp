@@ -684,6 +684,18 @@ BC::tan(const BC& x,int scale) {
 	return (BC::sin(x,scale) / cx).rescale(scale);
 }
 
+// arccot(x) = π/2 – arctan(x)
+
+#warning "arccot(x)"
+
+// arcsec(x) = arctan(sqrt(x2 – 1))
+
+#warning "arcsec(x)"
+
+// arccsc(x) = arctan(1/sqrt(x2 – 1))
+
+#warning "arccsc(x):
+
 BC
 BC::degrees(const BC& radians,int scale) {
 	return (radians * BC(180) / pi(scale)).rescale(scale);
