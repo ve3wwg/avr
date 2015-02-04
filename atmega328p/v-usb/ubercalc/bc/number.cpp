@@ -60,7 +60,7 @@ bc_num _two_;			// Shared 2 value
 // out of memory can be detected and handled from a central point.
 //////////////////////////////////////////////////////////////////////
 
-static inline void *
+void *
 bc_malloc(unsigned bytes) {
 	void *rp = malloc(bytes);
 
@@ -1684,6 +1684,24 @@ char
 	// Terminate the string and return it!
 	*sptr = '\0';
 	return str;
+}
+
+//////////////////////////////////////////////////////////////////////
+// wwg: Return the number of leading zeros in the fraction
+//////////////////////////////////////////////////////////////////////
+
+unsigned
+bc_leadingfz(bc_num num) {
+
+	if ( num->n_scale <= 0 )
+		return 0;
+
+	char *nptr = num->n_value + num->n_len;
+
+	for ( int x=0; x<num->n_scale; ++x )
+		if ( BCD_CHAR(*nptr++) != '0' )
+			return unsigned(x);
+	return num->n_scale;
 }
 
 //////////////////////////////////////////////////////////////////////

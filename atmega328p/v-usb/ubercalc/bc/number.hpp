@@ -109,6 +109,8 @@ extern "C" {
 	extern bc_num _one_;
 	extern bc_num _two_;
 	
+	void *bc_malloc(unsigned bytes);
+
 	void bc_init_numbers();
 	void bc_fini_numbers();	// required for valgrind testing only
 
@@ -139,6 +141,9 @@ extern "C" {
 	long bc_num2long(bc_num num);
 
 	void bc_out_num(bc_num num,int o_base,void (*out_char)(int,void *),int leading_zero,void *udata);
+
+	// Added by wwg:
+	unsigned bc_leadingfz(bc_num num);
 
 #ifdef __cplusplus
 } // extern "C"
