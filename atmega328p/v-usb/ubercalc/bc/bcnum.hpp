@@ -107,6 +107,9 @@ public:	BC();
 	static BC arcsin(const BC& x,int scale);
 	static BC arccos(const BC& x,int scale);
 	static BC arctan(const BC& x,int scale);
+	static BC arccot(const BC& x,int scale);
+	static BC arcsec(const BC& x,int scale);
+	static BC arccsc(const BC& x,int scale);
 
 	static BC degrees(const BC& radians,int scale);
 	static BC radians(const BC& degress,int scale);

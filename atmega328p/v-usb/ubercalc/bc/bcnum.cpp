@@ -686,15 +686,30 @@ BC::tan(const BC& x,int scale) {
 
 // arccot(x) = π/2 – arctan(x)
 
-#warning "arccot(x)"
+BC
+BC::arccot(const BC& x,int scale) {
+	BC piby2(pi(scale)/BC(2),scale);
+
+	return piby2 - arctan(x,scale);
+}
 
 // arcsec(x) = arctan(sqrt(x2 – 1))
 
-#warning "arcsec(x)"
+BC
+BC::arcsec(const BC& x,int scale) {
+	BC x2(x * x,scale);
+
+	return arctan(sqrt(x2-1,scale),scale);
+}
 
 // arccsc(x) = arctan(1/sqrt(x2 – 1))
 
-#warning "arccsc(x):
+BC
+BC::arccsc(const BC& x,int scale) {
+	BC x2(x * x,scale);
+	
+	return arctan(BC(1) / sqrt(x2 - BC(1),scale),scale);
+}
 
 BC
 BC::degrees(const BC& radians,int scale) {
