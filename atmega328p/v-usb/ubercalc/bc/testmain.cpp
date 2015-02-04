@@ -287,7 +287,7 @@ main(int argc,char **argv) {
 	}
 #endif
 
-#if 0
+#if 1
 	test_fun(0,+3,"0.03",BC::arctan,33,"arctan","a");
 	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
 	test_fun(-6,+6,"0.01",BC::cos,33,"cos","c");
@@ -300,6 +300,7 @@ main(int argc,char **argv) {
 	printf("pi(50) = %s\n",pi);
 	free(pi);
 #endif
+#if 0
 	{
 		BC x(1), z;
 
@@ -339,11 +340,26 @@ main(int argc,char **argv) {
 			rad2.as_string());
 	}
 	{
-		BC x(".6"), t;
+		BC x(".6"), t, u;
 
 		t = BC::tan(x,40);
-		printf("tan(%s,40) = %s\n",x.as_string(),t.as_string());
+		u = BC::arctan(t,40);
+		printf("tan(%s,40) = %s\narctan() = %s\n",x.as_string(),t.as_string(),u.as_string());
 	}
+
+	{
+		BC ax("1.65",40);
+		BC acot(BC::arccot(ax,40));
+		BC asec(BC::arcsec(ax,40));
+		BC acsc(BC::arccsc(ax,40));
+
+		printf("x=%s:\nacot=%s\nasec=%s\nacsc=%s\n",
+			ax.as_string(),
+			acot.as_string(),
+			asec.as_string(),
+			acsc.as_string());
+	}
+#endif
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
