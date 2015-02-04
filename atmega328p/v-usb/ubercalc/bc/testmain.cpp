@@ -15,6 +15,7 @@
 #include <sstream>
 
 #include "bcnum.hpp"
+#include "bf.hpp"
 
 extern "C" {
 
@@ -287,7 +288,7 @@ main(int argc,char **argv) {
 	}
 #endif
 
-#if 1
+#if 0
 	test_fun(0,+3,"0.03",BC::arctan,33,"arctan","a");
 	test_fun(-6,+6,"0.031",BC::sin,33,"sin","s");
 	test_fun(-6,+6,"0.01",BC::cos,33,"cos","c");
@@ -360,6 +361,20 @@ main(int argc,char **argv) {
 			acsc.as_string());
 	}
 #endif
+
+	{
+		BF x("12345.009"), y("0.03408");
+		char *sx, *sy;
+
+		sx = x.as_string();
+		sy = y.as_string();
+
+		printf("x=%s\n",sx);
+		printf("y=%s\n",sy);
+
+		free(sx);
+		free(sy);
+	}
 
 	if ( bc_valgrind )
 		bc_fini_numbers();		// Not required, except for valgrind testing
