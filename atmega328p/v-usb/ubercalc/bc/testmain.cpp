@@ -407,7 +407,7 @@ main(int argc,char **argv) {
 
 		r = x - y;
 		sr = r.as_string();
-		printf("x + y = r = %s\n",sr);
+		printf("x - y = r = %s\n",sr);
 		free(sr);
 	}
 
