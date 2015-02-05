@@ -1642,8 +1642,8 @@ bc_int2num(bc_num *num,int val) {
 	
 	// Assign the digits.
 	vptr = (*num)->n_value;
-	while (ix-- > 0)
-	*vptr++ = *--bptr;
+	while ( ix-- > 0 )
+		*vptr++ = *--bptr;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1702,6 +1702,46 @@ bc_leadingfz(bc_num num) {
 		if ( BCD_CHAR(*nptr++) != '0' )
 			return unsigned(x);
 	return num->n_scale;
+}
+
+//////////////////////////////////////////////////////////////////////
+// Return the larger of the two scale for adding
+//////////////////////////////////////////////////////////////////////
+
+int
+bc_common_scale(bc_num a,bc_num b) {
+	return a->n_scale > b->n_scale ? a->n_scale : b->n_scale;
+}
+
+void
+bc_shift_digits(bc_num *num,int n) {
+
+	if ( !n || bc_is_zero(*num) )
+		return;			// Shifting is senseless on zero
+
+	int sc = (*num)->n_scale;
+	bc_num a, ee, mul;
+
+	bc_init_num(&a);
+	bc_init_num(&ee);
+	bc_init_num(&mul);
+
+	bc_int2num(&a,10);
+	bc_int2num(&ee,n>=0?n:-n);
+	bc_raise(a,ee,&mul,0);		// mul = 10^n
+
+	if ( n > 0 ) {
+		// Multiplying num by 10^n
+		bc_multiply(*num,mul,num,sc);
+	} else	{
+		// Dividing num by 10^n
+		sc -= n;
+		bc_divide(*num,mul,num,sc);
+	}
+
+	bc_free_num(&a);
+	bc_free_num(&ee);
+	bc_free_num(&mul);
 }
 
 //////////////////////////////////////////////////////////////////////
