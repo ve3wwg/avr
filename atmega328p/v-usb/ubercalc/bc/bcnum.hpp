@@ -12,9 +12,6 @@
 class BC {
 	bc_num		num;
 
-protected:
-	int common_scale(const BC& rvalue) const;
-
 public:	BC();
 	inline BC(const BC& other) { num = bc_copy_num(other.num); }
 	BC(const BC& other,int scale);

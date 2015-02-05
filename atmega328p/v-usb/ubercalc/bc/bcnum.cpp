@@ -78,17 +78,12 @@ BC::assign(const char *val) {
 	return *this;
 }
 
-int
-BC::common_scale(const BC& rvalue) const {
-	return num->n_scale > rvalue.num->n_scale ? num->n_scale : rvalue.num->n_scale;
-}
-
 BC
 BC::operator+(const BC& rvalue) const {
 	bc_num result;
 
 	bc_init_num(&result);
-	bc_add(num,rvalue.num,&result,common_scale(rvalue));
+	bc_add(num,rvalue.num,&result,bc_common_scale(num,rvalue.num));
 	return BC(result);
 }
 
@@ -105,7 +100,7 @@ BC::operator-(const BC& rvalue) const {
 	bc_num result;
 
 	bc_init_num(&result);
-	bc_sub(num,rvalue.num,&result,common_scale(rvalue));
+	bc_sub(num,rvalue.num,&result,bc_common_scale(num,rvalue.num));
 	return BC(result);
 }
 
@@ -259,14 +254,14 @@ BC&
 BC::operator+=(int rvalue) {
 	bc_num r = bc_copy_num(_zero_);
 	bc_int2num(&r,rvalue);
-	bc_add(num,r,&num,common_scale(rvalue));
+	bc_add(num,r,&num,num->n_scale);
 	bc_free_num(&r);
 	return *this;
 }
 
 BC&
 BC::operator+=(const BC& rvalue) {
-	bc_add(num,rvalue.num,&num,common_scale(rvalue));
+	bc_add(num,rvalue.num,&num,bc_common_scale(num,rvalue.num));
 	return *this;
 }
 
@@ -281,7 +276,7 @@ BC::operator-=(int rvalue) {
 
 BC&
 BC::operator-=(const BC& rvalue) {
-	bc_sub(num,rvalue.num,&num,common_scale(rvalue));
+	bc_sub(num,rvalue.num,&num,bc_common_scale(num,rvalue.num));
 	return *this;
 }
 
