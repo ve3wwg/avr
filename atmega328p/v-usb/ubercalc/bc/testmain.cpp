@@ -61,6 +61,7 @@ out_dig(int dig,void *udata) {
 
 typedef BC (bcfunc_t)(const BC& x,int scale);
 
+#if 0
 static bool
 test_fun(int from,int to,const char *incr,bcfunc_t func,int scale,const char *what,const char *bcfun) {
 	char *cp = 0;
@@ -126,6 +127,7 @@ test_fun(int from,int to,const char *incr,bcfunc_t func,int scale,const char *wh
 
 	return true;
 }
+#endif
 
 int
 main(int argc,char **argv) {
@@ -362,8 +364,28 @@ main(int argc,char **argv) {
 	}
 #endif
 
+#if 0
 	{
-		BF x("12345.009"), y("0.03408");
+		BF a("100.1",12), b("99.9",12);
+		char *sa, *sb;
+
+		sa = a.as_string();
+		sb = b.as_string();
+		printf("a0=%s, b0=%s\n",sa,sb);
+		free(sa);
+		free(sb);
+
+		a.shift(1);
+		b.shift(-1);
+		sa = a.as_string();
+		sb = b.as_string();
+		printf("a1=%s, b1=%s\n",sa,sb);
+		free(sa);
+		free(sb);
+	}
+#endif
+	{
+		BF x("123.4"), y("1.5");
 		char *sx, *sy;
 
 		sx = x.as_string();
@@ -374,6 +396,19 @@ main(int argc,char **argv) {
 
 		free(sx);
 		free(sy);
+
+		BF r;
+		char *sr;
+
+		r = x + y;
+		sr = r.as_string();
+		printf("x + y = r = %s\n",sr);
+		free(sr);
+
+		r = x - y;
+		sr = r.as_string();
+		printf("x + y = r = %s\n",sr);
+		free(sr);
 	}
 
 	if ( bc_valgrind )
