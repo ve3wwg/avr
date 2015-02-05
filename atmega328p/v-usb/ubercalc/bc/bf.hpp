@@ -13,12 +13,20 @@ class BF {
 	int		mantissa : 16;	// Length-1 of the mantissa in digits
 	bc_num		num;
 
+protected:
+	BF(bc_num num,unsigned mant);
+
 public:	BF(unsigned mant=32);
 	BF(int intval,unsigned mant=32);
 	BF(const char *val,unsigned mant=32);
 	BF(const BF& other);
 
+	BF& shift(int exponent);
+
 	BF& normalize();
+
+	BF operator+(const BF& rvalue) const;
+	BF operator-(const BF& rvalue) const;
 
 	char *as_string();
 };

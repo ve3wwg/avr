@@ -13,7 +13,11 @@
 
 #include "bf.hpp"
 
+#define IABS(a) 	((a)>=0?(a):(-(a)))
+#define MANT(a,b)	(((a).mantissa) >= ((b).mantissa) ? ((a).mantissa) : ((b).mantissa) )
+
 BF::BF(unsigned mant) {
+
 	if ( !bc_inited )
 		bc_init_numbers();
 
@@ -23,6 +27,7 @@ BF::BF(unsigned mant) {
 }
 
 BF::BF(int intval,unsigned mant) {
+
 	if ( !bc_inited )
 		bc_init_numbers();
 
@@ -31,7 +36,18 @@ BF::BF(int intval,unsigned mant) {
 	mantissa = mant;
 }
 
+BF::BF(bc_num num,unsigned mant) {
+
+	if ( !bc_inited )
+		bc_init_numbers();
+
+	this->num = num;
+	exponent = 0;
+	mantissa = mant;
+}
+
 BF::BF(const char *val,unsigned mant) {
+
 	if ( !bc_inited )
 		bc_init_numbers();
 
@@ -49,6 +65,7 @@ BF::BF(const char *val,unsigned mant) {
 }
 
 BF::BF(const BF& other) {
+
 	if ( !bc_inited )
 		bc_init_numbers();
 
@@ -62,43 +79,20 @@ BF::normalize() {
 
 	if ( !bc_is_zero(num) ) {
 		if ( num->n_len > 1 ) {
-			unsigned dig = num->n_len - 1;
-			bc_num ten, power, mul;
-	
-			bc_init_num(&mul);
-			bc_init_num(&ten);
-			bc_init_num(&power);
-			bc_int2num(&ten,10);
-			bc_int2num(&power,num->n_len-1);
-			bc_raise(ten,power,&mul,0);
-			ten = bc_copy_num(num);
-			bc_divide(ten,mul,&num,mantissa-1);
-			exponent += int(dig);
-			bc_free_num(&mul);
-			bc_free_num(&ten);
-			bc_free_num(&power);
+			exponent += num->n_len-1;
+			bc_shift_digits(&num,-(num->n_len-1));
 		} else if ( ( num->n_len == 1 && !*num->n_value ) || num->n_len == 0 ) {
 			unsigned lz = bc_leadingfz(num);
-
 			if ( lz > 0 ) {
-				bc_num ten, power, mul;
-				
-				bc_init_num(&mul);
-				bc_init_num(&ten);
-				bc_init_num(&power);
-				bc_int2num(&ten,10);
-				bc_int2num(&power,int(lz+1));
-				bc_raise(ten,power,&mul,0);
-				bc_multiply(num,mul,&power,mantissa-1);
-				bc_int2num(&ten,1);
-				bc_divide(power,ten,&num,mantissa-1);
-				exponent -= int(lz+1);
-				bc_free_num(&mul);
-				bc_free_num(&ten);
-				bc_free_num(&power);
+				exponent -= lz + 1;
+				bc_shift_digits(&num,lz+1);
 			}
 		}
 	}
+
+	bc_num a = bc_copy_num(num);
+	bc_divide(a,_one_,&num,mantissa);
+	bc_free_num(&a);
 
 	return *this;
 }
@@ -125,12 +119,78 @@ BF::as_string() {
 
 	m = r+lm;
 	*m++ = 'E';
-	if ( exponent > 0 )
-		*m++ = '+';
 	strcpy(m,e);
 	
 	free(e);
 	return r;
+}
+
+BF
+BF::operator+(const BF& rvalue) const {
+	int ediff = IABS(this->exponent - rvalue.exponent);
+
+	if ( ediff > mantissa ) {
+		// Too large a difference for sum/difference to matter
+		if ( this->exponent > rvalue.exponent )
+			return BF(*this);
+		else	return BF(rvalue);
+	}
+
+	int e;
+	BF a(*this);
+	BF b(rvalue);
+
+	a.normalize();
+	b.normalize();
+
+	if ( this->exponent > rvalue.exponent ) {
+		e = this->exponent;
+		bc_shift_digits(&b.num,rvalue.exponent-this->exponent);
+	} else if ( this->exponent < rvalue.exponent ) {
+		e = rvalue.exponent;
+		bc_shift_digits(&a.num,this->exponent-rvalue.exponent);
+	} else	e = this->exponent;
+
+	bc_num r;
+	bc_init_num(&r);
+	bc_add(a.num,b.num,&r,mantissa*2);
+	BF R(r,mantissa);
+	R.exponent = e;
+	return R.normalize();
+}
+
+BF
+BF::operator-(const BF& rvalue) const {
+	int ediff = IABS(this->exponent - rvalue.exponent);
+
+	if ( ediff > mantissa ) {
+		// Too large a difference for sum/difference to matter
+		if ( this->exponent > rvalue.exponent )
+			return BF(*this);
+		else	return BF(rvalue);
+	}
+
+	int e;
+	BF a(*this);
+	BF b(rvalue);
+
+	a.normalize();
+	b.normalize();
+
+	if ( this->exponent > rvalue.exponent ) {
+		e = this->exponent;
+		bc_shift_digits(&b.num,rvalue.exponent-this->exponent);
+	} else if ( this->exponent < rvalue.exponent ) {
+		e = rvalue.exponent;
+		bc_shift_digits(&a.num,this->exponent-rvalue.exponent);
+	} else	e = this->exponent;
+
+	bc_num r;
+	bc_init_num(&r);
+	bc_sub(a.num,b.num,&r,mantissa*2);
+	BF R(r,mantissa);
+	R.exponent = e;
+	return R.normalize();
 }
 
 // End bf.cpp
