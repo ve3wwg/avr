@@ -143,7 +143,9 @@ extern "C" {
 	void bc_out_num(bc_num num,int o_base,void (*out_char)(int,void *),int leading_zero,void *udata);
 
 	// Added by wwg:
+	int bc_common_scale(bc_num a,bc_num b);
 	unsigned bc_leadingfz(bc_num num);
+	void bc_shift_digits(bc_num *num,int n);
 
 #ifdef __cplusplus
 } // extern "C"
