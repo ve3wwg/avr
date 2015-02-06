@@ -1,6 +1,6 @@
 
 ///////////////////////////////////////////////////////////////////////
-// bf.cpp -- Implementation of BigFloat on top of bc number
+// bf.cpp -- Implementation of Bcursed!igFloat on top of bc number
 // Date: Tue Feb  3 22:48:23 2015  (C) Warren W. Gay VE3WWG 
 ///////////////////////////////////////////////////////////////////////
 
@@ -12,6 +12,7 @@
 #include <assert.h>
 
 #include "bf.hpp"
+#include "bc.hpp"
 
 #define IABS(a) 	((a)>=0?(a):(-(a)))
 #define MANT(a,b)	(((a).mantissa) >= ((b).mantissa) ? ((a).mantissa) : ((b).mantissa) )
@@ -129,15 +130,16 @@ BF::assign(const char *val) {
 }
 
 char *
-BF::as_string() {
+BF::as_string() const {
+	BF t(*this);
 
-	normalize();
+	t.normalize();
 
 	bc_num temp;
 	bc_init_num(&temp);
-	bc_int2num(&temp,exponent);
+	bc_int2num(&temp,t.exponent);
 
-	char *m = bc_num2str(num);
+	char *m = bc_num2str(t.num);
 	char *e = bc_num2str(temp);	
 
 	int lm = strlen(m);
@@ -154,6 +156,23 @@ BF::as_string() {
 	
 	free(e);
 	return r;
+}
+
+long
+BF::as_long() const {
+
+	if ( exponent == 0 )
+		return bc_num2long(num);
+
+	if ( exponent > 0 ) {
+		bc_num temp = bc_copy_num(num);
+		bc_shift_digits(&temp,exponent);
+		long r = bc_num2long(temp);
+		bc_free_num(&temp);
+		return r;
+	}
+
+	return 0L;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -242,5 +261,250 @@ BF::operator=(const BF& rvalue) {
 	num = bc_copy_num(rvalue.num);
 	return *this;
 }
+
+bool
+BF::operator!() const {
+	return bc_is_zero(num);
+}
+
+BF
+BF::operator-() const {
+	BF r(*this);
+
+	r.num->n_sign ^= 1;
+	return r;
+}
+
+int
+BF::compare(const BF& rvalue) const {
+
+	if ( !*this && !rvalue )
+		return 0;			// These equal (exponents are meaningless here)
+
+	if ( exponent < rvalue.exponent )
+		return -1;
+	else if ( exponent > rvalue.exponent )
+		return +1;
+
+	bc_num r;
+	bc_init_num(&r);
+	bc_sub(num,rvalue.num,&r,num->n_scale>=rvalue.num->n_scale?num->n_scale:rvalue.num->n_scale);
+
+	int rc;
+	if ( bc_is_zero(r) ) 
+		rc = 0;
+	else if ( bc_is_neg(r) )
+		rc = -1;
+	else	rc = +1;
+	bc_free_num(&r);
+
+	return rc;
+}
+
+bool
+BF::operator<(const BF& rvalue) const {
+	return compare(rvalue) < 0;
+}
+
+bool
+BF::operator<=(const BF& rvalue) const {
+	return compare(rvalue) <= 0;
+}
+
+bool
+BF::operator==(const BF& rvalue) const {
+	return compare(rvalue) == 0;
+}
+
+bool
+BF::operator!=(const BF& rvalue) const {
+	return compare(rvalue) != 0;
+}
+
+bool
+BF::operator>=(const BF& rvalue) const {
+	return compare(rvalue) >= 0;
+}
+
+bool
+BF::operator>(const BF& rvalue) const {
+	return compare(rvalue) > 0;
+}
+
+BF&
+BF::operator++() {
+	*this = BF(*this) + BF(bc_copy_num(_one_),mantissa);
+	return *this;
+}
+
+BF&
+BF::operator--() {
+	*this = BF(*this) - BF(bc_copy_num(_one_),mantissa);
+	return *this;
+}
+
+BF
+BF::operator++(int) {
+	BF R(*this);
+	*this = BF(*this) + BF(bc_copy_num(_one_),mantissa);
+	return R;
+}
+
+BF
+BF::operator--(int) {
+	BF R(*this);
+	*this = BF(*this) - BF(bc_copy_num(_one_),mantissa);
+	return R;
+}
+
+BF&
+BF::operator+=(const BF& rvalue) {
+	*this = *this + rvalue;
+	return *this;
+}
+
+BF&
+BF::operator-=(const BF& rvalue) {
+	*this = *this - rvalue;
+	return *this;
+}
+
+BF&
+BF::operator*=(const BF& rvalue) {
+	*this = *this * rvalue;
+	return *this;
+}
+
+BF&
+BF::operator/=(const BF& rvalue) {
+	*this = *this / rvalue;
+	return *this;
+}
+
+//////////////////////////////////////////////////////////////////////
+// int operations
+//////////////////////////////////////////////////////////////////////
+
+BF&
+BF::operator=(int rvalue) {
+	exponent = 0;
+	bc_int2num(&num,rvalue);
+	return *this;
+}
+
+BF
+BF::operator+(int rvalue) const {
+	return *this + BF(rvalue,mantissa);
+}
+
+BF
+BF::operator-(int rvalue) const {
+	return *this - BF(rvalue,mantissa);
+}
+
+BF
+BF::operator*(int rvalue) const {
+	return *this * BF(rvalue,mantissa);
+}
+
+BF
+BF::operator/(int rvalue) const {
+	return *this / BF(rvalue,mantissa);
+}
+
+BF&
+BF::operator+=(int rvalue) {
+	return *this += BF(rvalue,mantissa);
+}
+
+BF&
+BF::operator-=(int rvalue) {
+	return *this -= BF(rvalue,mantissa);
+}
+
+BF&
+BF::operator*=(int rvalue) {
+	return *this *= BF(rvalue,mantissa);
+}
+
+BF&
+BF::operator/=(int rvalue) {
+	return *this /= BF(rvalue,mantissa);
+}
+
+BF
+BF::operator^(const BF& rvalue) const {
+	// x^n= exp(n ln x)
+#warning "Finish me.. power()"
+	return BF(0,mantissa);
+}
+
+//////////////////////////////////////////////////////////////////////
+// Static functions
+//////////////////////////////////////////////////////////////////////
+
+BF
+BF::abs(const BF& x) {
+	BF r(x);
+
+	r.num->n_sign = 0;
+	return r;
+}
+
+BF
+BF::truncate(const BF& x) {
+	BF r(x);
+	if ( r.exponent > 0 )
+		r.num->n_scale = r.exponent - 1;
+	else	r.num->n_scale = 0;
+	return r.normalize();
+}
+
+BF
+BF::pi(int mantissa) {
+	BC pi = BC::pi(mantissa+1);
+	BF r(bc_copy_num(pi.num),mantissa);
+	return r;
+}
+
+// INTERNAL:
+
+BF
+BF::pi_range(const BF& x) {
+	BF temp(x);
+	temp.normalize();
+
+	if ( temp.exponent > 0 ) {
+		BF pi(BF::pi(x.mantissa));
+		BF m(x.mantissa);
+		BF r(temp);
+		m = BF::truncate(r / pi) * pi;
+		return r -= m;
+	} else	{
+		return BF(x);
+	}
+}
+
+#if 0
+BF
+BF::sin(const BF& x) {
+	BF rx = BF::pi_range(x);
+	return...
+}
+#endif
+
+#if 0
+sqrt(const
+BF::BF& x) {
+}
+
+BF
+BF::cos(const BF& x) {
+}
+
+BF
+BF::tan(const BF& x) {
+}
+#endif
 
 // End bf.cpp
