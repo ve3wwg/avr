@@ -437,6 +437,20 @@ main(int argc,char **argv) {
 		sy = y.as_string();
 		printf("y=%s (%s)\n",sy,vp);
 		free(sy);
+
+		x.assign("10.05");
+		y.assign("6.78");
+		sx = x.as_string();
+		sy = y.as_string();
+		printf("x=%s\n",sx);
+		printf("y=%s\n",sy);
+		free(sx);
+		free(sy);
+
+		r = x * y;
+		sr = r.as_string();
+		printf("x * y = r = %s\n",sr);
+		free(sr);
 	}
 
 	if ( bc_valgrind )
