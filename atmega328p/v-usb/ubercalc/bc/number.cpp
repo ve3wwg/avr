@@ -1788,9 +1788,10 @@ bc_str2num(bc_num *num,const char *str,int scale,int stop_on_e) {
 		f_nd = 0;		// Treat the 'E' as if it were a nul byte
 
 	if ( f_nd || (digits+strscale == 0) ) {
-		if ( !stop_on_e ) 
-		*num = bc_copy_num(_zero_);
-		return;
+		if ( !stop_on_e ) {
+			*num = bc_copy_num(_zero_);
+			return;
+		}
 	}
 
 	// Adjust numbers and allocate storage and initialize fields.
