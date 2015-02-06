@@ -28,6 +28,7 @@ public:	BF(unsigned mant=32);
 
 	BF& assign(const char *val);
 	BF& negate();
+	BF& operator=(const BF& rvalue);
 
 	BF operator+(const BF& rvalue) const;
 	BF operator-(const BF& rvalue) const;

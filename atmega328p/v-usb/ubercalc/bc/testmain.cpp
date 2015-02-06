@@ -14,7 +14,7 @@
 #include <string>
 #include <sstream>
 
-#include "bcnum.hpp"
+#include "bc.hpp"
 #include "bf.hpp"
 
 extern "C" {
@@ -469,6 +469,11 @@ main(int argc,char **argv) {
 		r.negate();
 		sr = r.as_string();
 		printf("r.negate() = %s\n",sr);
+		free(sr);
+
+		r = x;
+		sr = r.as_string();
+		printf("r := x = %s\n",sr);
 		free(sr);
 	}
 

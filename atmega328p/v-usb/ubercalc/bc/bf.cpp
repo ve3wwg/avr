@@ -235,4 +235,12 @@ BF::negate() {
 	return *this;
 }
 
+BF&
+BF::operator=(const BF& rvalue) {
+	mantissa = rvalue.mantissa;
+	exponent = rvalue.exponent;
+	num = bc_copy_num(rvalue.num);
+	return *this;
+}
+
 // End bf.cpp
