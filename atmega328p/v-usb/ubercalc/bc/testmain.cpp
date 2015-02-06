@@ -439,7 +439,7 @@ main(int argc,char **argv) {
 		free(sy);
 
 		x.assign("10.05");
-		y.assign("6.78");
+		y.assign("6.78E-2");
 		sx = x.as_string();
 		sy = y.as_string();
 		printf("x=%s\n",sx);

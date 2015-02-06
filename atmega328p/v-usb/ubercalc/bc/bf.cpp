@@ -216,7 +216,7 @@ BF::operator*(const BF& rvalue) const {
 	bc_init_num(&r);
 	bc_multiply(num,rvalue.num,&r,num->n_scale+rvalue.num->n_scale);
 	BF R(r,mantissa);		// This steals r
-	R.exponent = exponent;	
+	R.exponent = exponent + rvalue.exponent;
 	return R.normalize();
 }
 
