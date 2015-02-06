@@ -385,7 +385,7 @@ main(int argc,char **argv) {
 	}
 #endif
 	{
-		BF x("123.4"), y("1.5");
+		BF x("123.4",6), y("1.5",6);
 		char *sx, *sy;
 
 		sx = x.as_string();
@@ -393,11 +393,10 @@ main(int argc,char **argv) {
 
 		printf("x=%s\n",sx);
 		printf("y=%s\n",sy);
-
 		free(sx);
 		free(sy);
 
-		BF r;
+		BF r(0,6);
 		char *sr;
 
 		r = x + y;
@@ -409,6 +408,35 @@ main(int argc,char **argv) {
 		sr = r.as_string();
 		printf("x - y = r = %s\n",sr);
 		free(sr);
+
+		y.assign(".0000653");
+		sx = x.as_string();
+		sy = y.as_string();
+		printf("x=%s\n",sx);
+		printf("y=%s\n",sy);
+		free(sx);
+		free(sy);
+
+		r = x + y;
+		sr = r.as_string();
+		printf("x + y = r = %s\n",sr);
+		free(sr);
+
+		const char *vp;
+		y.assign(vp="5.03E2");
+		sy = y.as_string();
+		printf("y=%s (%s)\n",sy,vp);
+		free(sy);
+
+		y.assign(vp="5E2");
+		sy = y.as_string();
+		printf("y=%s (%s)\n",sy,vp);
+		free(sy);
+
+		y.assign(vp="5E-1");
+		sy = y.as_string();
+		printf("y=%s (%s)\n",sy,vp);
+		free(sy);
 	}
 
 	if ( bc_valgrind )
