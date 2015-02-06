@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////
-// bcnum.hpp -- BC class
+// bc.hpp -- BC class
 // Date: Thu Jan 29 21:32:54 2015   (C) Warren Gay ve3wwg
 ///////////////////////////////////////////////////////////////////////
 
-#ifndef BCNUM_HPP
-#define BCNUM_HPP
+#ifndef BC_HPP
+#define BC_HPP
 
 #include "number.hpp"
 
@@ -119,6 +119,6 @@ public:	BC();
 };
 
 
-#endif // BCNUM_HPP
+#endif // BC_HPP
 
-// End bcnum.hpp
+// End bc.hpp

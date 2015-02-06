@@ -1,10 +1,10 @@
 ///////////////////////////////////////////////////////////////////////
-// bcnum.cpp -- BC Class Implementation
+// bc.cpp -- BC Class Implementation
 // Date: Thu Jan 29 21:37:05 2015  (C) Warren W. Gay VE3WWG 
 ///////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "bcnum.hpp"
+#include "bc.hpp"
 
 BC::BC() {
 
@@ -716,4 +716,4 @@ BC::radians(const BC& degrees,int scale) {
 	return (degrees * pi(scale) / BC(180)).rescale(scale);
 }
 
-// End bcnum.cpp
+// End bc.cpp
