@@ -78,10 +78,8 @@ BF::normalize() {
 			bc_shift_digits(&num,-(num->n_len-1));
 		} else if ( ( num->n_len == 1 && !*num->n_value ) || num->n_len == 0 ) {
 			unsigned lz = bc_leadingfz(num);
-			if ( lz > 0 ) {
-				exponent -= lz + 1;
-				bc_shift_digits(&num,lz+1);
-			}
+			exponent -= lz + 1;
+			bc_shift_digits(&num,lz+1);
 		}
 	}
 
@@ -218,6 +216,23 @@ BF::operator*(const BF& rvalue) const {
 	BF R(r,mantissa);		// This steals r
 	R.exponent = exponent + rvalue.exponent;
 	return R.normalize();
+}
+
+BF
+BF::operator/(const BF& rvalue) const {
+	bc_num r;
+
+	bc_init_num(&r);
+	bc_divide(num,rvalue.num,&r,num->n_scale+rvalue.num->n_scale);
+	BF R(r,mantissa);		// This steals r
+	R.exponent = exponent - rvalue.exponent;
+	return R.normalize();
+}
+
+BF&
+BF::negate() {
+	num->n_sign ^= 1;
+	return *this;
 }
 
 // End bf.cpp

@@ -27,10 +27,12 @@ public:	BF(unsigned mant=32);
 	BF& normalize();
 
 	BF& assign(const char *val);
+	BF& negate();
 
 	BF operator+(const BF& rvalue) const;
 	BF operator-(const BF& rvalue) const;
 	BF operator*(const BF& rvalue) const;
+	BF operator/(const BF& rvalue) const;
 
 	char *as_string();
 };
