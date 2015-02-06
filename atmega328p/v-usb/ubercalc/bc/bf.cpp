@@ -31,6 +31,7 @@ BF::BF(int intval,unsigned mant) {
 	if ( !bc_inited )
 		bc_init_numbers();
 
+	bc_init_num(&num);
 	bc_int2num(&num,intval);
 	exponent = 0;
 	mantissa = mant;
@@ -51,17 +52,11 @@ BF::BF(const char *val,unsigned mant) {
 	if ( !bc_inited )
 		bc_init_numbers();
 
-	int scale;
-	const char *cp;
-
-	for ( cp = val; *cp != '.'; ++cp )
-		;
-	if ( *cp == '.' )
-		scale = strlen(cp+1);
-	else	scale = 0;
-	bc_str2num(&num,val,scale);
 	exponent = 0;
 	mantissa = mant;
+
+	bc_init_num(&num);
+	this->assign(val);
 }
 
 BF::BF(const BF& other) {
@@ -97,6 +92,39 @@ BF::normalize() {
 	return *this;
 }
 
+BF&
+BF::assign(const char *val) {
+	int scale;
+	const char *cp, *ee = 0;
+
+	for ( cp = val; *cp && *cp != '.'; ++cp )
+		if ( *cp == 'e' || *cp == 'E' )
+			break;		// Break at start of exponent
+
+	if ( *cp == 'e' || *cp == 'E' ) {
+		ee = cp;		// Start of exponent
+		scale = 0;		// with no decimal point in mantissa
+	} else if ( *cp == '.' ) {
+		scale = strlen(cp+1);
+		for ( ee=cp+1; *ee && *ee != 'e' && *ee != 'E'; ++ee ) 
+			;		// Got decimal point, but scan for exponent (if any)
+	} else	
+		scale = 0;		// No decimal point, no exponent
+
+	bc_str2num(&num,val,scale,1);	// Stops on 'E' (when present)
+
+	if ( ee && *++ee != 0 ) {	// Extract exponent?
+		bc_num exp;
+
+		bc_init_num(&exp);
+		bc_str2num(&exp,ee,0);
+		exponent = bc_num2long(exp);
+		bc_free_num(&exp);
+	}
+
+	return *this;
+}
+
 char *
 BF::as_string() {
 
@@ -125,8 +153,12 @@ BF::as_string() {
 	return r;
 }
 
+//////////////////////////////////////////////////////////////////////
+// INTERNAL: Add/Sub
+//////////////////////////////////////////////////////////////////////
+
 BF
-BF::operator+(const BF& rvalue) const {
+BF::addsub(const BF& rvalue,int sub) const {
 	int ediff = IABS(this->exponent - rvalue.exponent);
 
 	if ( ediff > mantissa ) {
@@ -153,44 +185,23 @@ BF::operator+(const BF& rvalue) const {
 
 	bc_num r;
 	bc_init_num(&r);
-	bc_add(a.num,b.num,&r,mantissa*2);
+	if ( !sub )
+		bc_add(a.num,b.num,&r,mantissa*2);
+	else	bc_sub(a.num,b.num,&r,mantissa*2);
+
 	BF R(r,mantissa);
 	R.exponent = e;
 	return R.normalize();
 }
 
 BF
+BF::operator+(const BF& rvalue) const {
+	return addsub(rvalue,0);
+}
+
+BF
 BF::operator-(const BF& rvalue) const {
-	int ediff = IABS(this->exponent - rvalue.exponent);
-
-	if ( ediff > mantissa ) {
-		// Too large a difference for sum/difference to matter
-		if ( this->exponent > rvalue.exponent )
-			return BF(*this);
-		else	return BF(rvalue);
-	}
-
-	int e;
-	BF a(*this);
-	BF b(rvalue);
-
-	a.normalize();
-	b.normalize();
-
-	if ( this->exponent > rvalue.exponent ) {
-		e = this->exponent;
-		bc_shift_digits(&b.num,rvalue.exponent-this->exponent);
-	} else if ( this->exponent < rvalue.exponent ) {
-		e = rvalue.exponent;
-		bc_shift_digits(&a.num,this->exponent-rvalue.exponent);
-	} else	e = this->exponent;
-
-	bc_num r;
-	bc_init_num(&r);
-	bc_sub(a.num,b.num,&r,mantissa*2);
-	BF R(r,mantissa);
-	R.exponent = e;
-	return R.normalize();
+	return addsub(rvalue,1);
 }
 
 // End bf.cpp

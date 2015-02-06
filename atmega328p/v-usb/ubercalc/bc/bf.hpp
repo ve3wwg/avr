@@ -15,6 +15,7 @@ class BF {
 
 protected:
 	BF(bc_num num,unsigned mant);
+	BF addsub(const BF& rvalue,int sub) const;
 
 public:	BF(unsigned mant=32);
 	BF(int intval,unsigned mant=32);
@@ -24,6 +25,8 @@ public:	BF(unsigned mant=32);
 	BF& shift(int exponent);
 
 	BF& normalize();
+
+	BF& assign(const char *val);
 
 	BF operator+(const BF& rvalue) const;
 	BF operator-(const BF& rvalue) const;
