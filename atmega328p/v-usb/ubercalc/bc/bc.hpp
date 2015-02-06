@@ -8,8 +8,11 @@
 
 #include "number.hpp"
 
+class BF;
 
 class BC {
+	friend class BF;
+
 	bc_num		num;
 
 public:	BC();
