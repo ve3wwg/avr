@@ -30,6 +30,7 @@ public:	BF(unsigned mant=32);
 
 	BF operator+(const BF& rvalue) const;
 	BF operator-(const BF& rvalue) const;
+	BF operator*(const BF& rvalue) const;
 
 	char *as_string();
 };

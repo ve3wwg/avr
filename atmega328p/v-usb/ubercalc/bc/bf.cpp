@@ -95,7 +95,8 @@ BF::normalize() {
 BF&
 BF::assign(const char *val) {
 	int scale;
-	const char *cp, *ee = 0;
+	const char *cp;
+	const char *ee = 0;
 
 	for ( cp = val; *cp && *cp != '.'; ++cp )
 		if ( *cp == 'e' || *cp == 'E' )
@@ -108,6 +109,8 @@ BF::assign(const char *val) {
 		scale = strlen(cp+1);
 		for ( ee=cp+1; *ee && *ee != 'e' && *ee != 'E'; ++ee ) 
 			;		// Got decimal point, but scan for exponent (if any)
+		if ( *ee != 'e' && *ee != 'E' )
+			ee = 0;		// No exponent
 	} else	
 		scale = 0;		// No decimal point, no exponent
 
@@ -120,6 +123,8 @@ BF::assign(const char *val) {
 		bc_str2num(&exp,ee,0);
 		exponent = bc_num2long(exp);
 		bc_free_num(&exp);
+	} else	{
+		exponent = 0;
 	}
 
 	return *this;
@@ -202,6 +207,17 @@ BF::operator+(const BF& rvalue) const {
 BF
 BF::operator-(const BF& rvalue) const {
 	return addsub(rvalue,1);
+}
+
+BF
+BF::operator*(const BF& rvalue) const {
+	bc_num r;
+
+	bc_init_num(&r);
+	bc_multiply(num,rvalue.num,&r,num->n_scale+rvalue.num->n_scale);
+	BF R(r,mantissa);		// This steals r
+	R.exponent = exponent;	
+	return R.normalize();
 }
 
 // End bf.cpp
