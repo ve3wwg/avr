@@ -6,8 +6,8 @@ include Makefile.incl
 
 all:	testmain
 
-testmain: number.o testmain.o bcnum.o bf.o
-	$(CXX) testmain.o number.o bcnum.o bf.o -o testmain -lm
+testmain: number.o testmain.o bc.o bf.o
+	$(CXX) testmain.o number.o bc.o bf.o -o testmain -lm
 
 clean:
 	rm -f *.o *.core
