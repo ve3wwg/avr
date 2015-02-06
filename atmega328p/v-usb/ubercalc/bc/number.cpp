@@ -1749,11 +1749,12 @@ bc_shift_digits(bc_num *num,int n) {
 //////////////////////////////////////////////////////////////////////
 
 void
-bc_str2num(bc_num *num,const char *str,int scale) {
+bc_str2num(bc_num *num,const char *str,int scale,int stop_on_e) {
 	int digits, strscale;
 	const char *ptr;
 	char *nptr;
 	char zero_int;
+	int f_nd = 0;
 
 	bc_free_num(num);		// Prepare num.
 
@@ -1782,7 +1783,12 @@ bc_str2num(bc_num *num,const char *str,int scale) {
 		strscale++;		// digits
 	}
 
-	if ( (*ptr != '\0') || (digits+strscale == 0) ) {
+	f_nd = *ptr != 0;		// Set non-digit flag (wwg)
+	if ( f_nd && stop_on_e && ( *ptr == 'e' || *ptr == 'E' ) )
+		f_nd = 0;		// Treat the 'E' as if it were a nul byte
+
+	if ( f_nd || (digits+strscale == 0) ) {
+		if ( !stop_on_e ) 
 		*num = bc_copy_num(_zero_);
 		return;
 	}

@@ -120,7 +120,7 @@ extern "C" {
 	bc_num bc_copy_num(bc_num num);
 	void bc_init_num(bc_num *num);
 
-	void bc_str2num(bc_num *num,const char *str,int scale);
+	void bc_str2num(bc_num *num,const char *str,int scale,int stop_on_e=0); // wwg: added stop_on_e
 	char *bc_num2str(bc_num num);
 	int bc_compare(bc_num n1,bc_num n2);
 	char bc_is_zero(bc_num num);
