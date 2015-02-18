@@ -2,8 +2,14 @@
 #  Programmer definition for atmega328p
 ######################################################################
 
-# AVRDUDE = avrdude -c boarduino 
-AVRDUDE = avrdude -c usbasp
+# USB Boarduino
+# AVRDUDE = avrdude -c boarduino -c arduino -P /dev/tty.usbserial-A6005XBY -B $(PGBAUD)
+
+# usbasp ISP Programmer
+# AVRDUDE = avrdude -c usbasp
+
+# Arduino Uno Clone
+AVRDUDE = avrdude -c arduino -P /dev/tty.wchusbserialfa130 -B 115200
 
 ######################################################################
 #  End Makefile.programmer
