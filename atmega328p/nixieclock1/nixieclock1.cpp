@@ -75,10 +75,17 @@ read_rtc() {
 
 	if ( I2C_start(RTC_address,false) )
 		return -1;	// Error
-	if ( I2C_write(0x00) )
+	if ( I2C_write(0x00) ) {
+		I2C_stop();
 		return -1;	// Error
+	}
+	if ( I2C_write(0x81) ) {
+		I2C_stop();
+		return -1;	// Error
+	}
 	I2C_stop();
 
+#if 0
 	I2C_start(RTC_address,true);
 	I2C_read_ack(); // Ignore
 	bmin = I2C_read_ack();
@@ -97,7 +104,7 @@ read_rtc() {
 		min_ones = min1;
 		return 1;		// Changed
 	}
-	
+#endif	
 	return 0;			// No change
 }
 
@@ -119,7 +126,15 @@ main() {
 	ports_init();
 
 	for (;;) {
-		for ( int tx=0; tx<400; ++tx ) {
+		LED ^= 1;
+		read_rtc();
+		_delay_us(100.0);
+	}
+
+
+#if 0
+	for (;;) {
+		for ( int tx=0; tx<100; ++tx ) {
 			display();
 			if ( tx % 50 == 0 ) {
 				switch ( read_rtc() ) {
@@ -144,7 +159,7 @@ main() {
 			}
 		}
 	}
-
+#endif
 	return 0;
 }
 

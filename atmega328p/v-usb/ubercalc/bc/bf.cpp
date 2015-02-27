@@ -479,6 +479,8 @@ BF::pi_range(const BF& x) {
 		BF m(x.mantissa);
 		BF r(temp);
 		m = BF::truncate(r / pi) * pi;
+		
+
 		return r -= m;
 	} else	{
 		return BF(x);

@@ -40,12 +40,22 @@ main(int argc,char **argv) {
 	for ( bus=usb_get_busses(); bus; bus=bus->next ) {
 		for( dev=bus->devices; dev; dev=dev->next ) {
 			struct usb_device_descriptor& desc = dev->descriptor;
+			usb_dev_handle *dh = usb_open(dev);
+			char buf[50];
 
-			printf("Device: %s %04x:%04x, manuf %u\n",
+			if ( dh ) {
+				if ( usb_get_string_simple(dh,desc.iProduct,buf,sizeof buf) <= 0 )
+					strcpy(buf,"?");
+				usb_close(dh);
+				dh = 0;
+			} else	*buf = 0;
+
+			printf("Device: %s %04x:%04x, manuf %u (%s)\n",
 				dev->filename,
 				desc.idVendor,
 				desc.idProduct,
-				desc.iManufacturer);
+				desc.iManufacturer,
+				buf);
 
 			if ( desc.idVendor == VEND_ID && desc.idProduct == PROD_ID ) {
 				printf("  Device %s is the V-USB device!\n",

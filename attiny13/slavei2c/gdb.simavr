@@ -1,0 +1,6 @@
+file testmain.elf
+target remote localhost:1234
+b main
+layout split
+layout next
+c

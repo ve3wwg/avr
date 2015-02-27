@@ -4,9 +4,9 @@
 #  LICENSE: GPL
 ######################################################################
 
-include ../Makefile.programmer
+include ../../../atmega328p/Makefile.programmer
 
-F_CPU	?= 16000000UL
+F_CPU	?= 4000000UL
 DEVICE	?= atmega328p
 
 OPTZ	   = -Os $(DEFNS)
@@ -28,15 +28,15 @@ AS	= avr-as
 	avr-objcopy -j .text -j .data -O ihex $< $@
 	avr-size --format=avr --mcu=$(DEVICE) $<
 
-OBJS	= nixieclock1.o i2cmaster.o
+OBJS	= testi2c.o i2cmaster.o
 
-all:	nixieclock1.hex
+all:	testi2c.hex
 
-nixieclock1.elf: $(OBJS)
-	$(CXX) $(OBJS) -o nixieclock1.elf
+testi2c.elf: $(OBJS)
+	$(CXX) $(OBJS) -o testi2c.elf
 
-flash:	nixieclock1.hex
-	$(AVRDUDE) -p $(DEVICE) -U flash:w:nixieclock1.hex:i
+flash:	testi2c.hex
+	$(AVRDUDE) -p $(DEVICE) -U flash:w:testi2c.hex:i
 
 readfuse:
 	$(AVRDUDE) -p $(DEVICE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
@@ -47,7 +47,7 @@ clean:
 clobber: clean
 	rm -f *.elf *.hex simul.out .errs.t *.list
 
-disasm:	nixieclock1.elf
-	avr-objdump -d nixieclock1.elf
+disasm:	testi2c.elf
+	avr-objdump -d testi2c.elf
 
 # End
