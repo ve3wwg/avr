@@ -73,25 +73,27 @@ read_rtc() {
 	uint8_t bmin, bhour;
 	uint8_t min10, min1, hr10, hr1;
 
-	if ( I2C_start(RTC_address,false) )
-		return -1;	// Error
-	if ( I2C_write(0x00) ) {
-		I2C_stop();
-		return -1;	// Error
-	}
-	if ( I2C_write(0x81) ) {
-		I2C_stop();
-		return -1;	// Error
-	}
-	I2C_stop();
+	while ( I2C_start(RTC_address|I2C_WRITE) )
+		_delay_us(10.0);
 
-#if 0
-	I2C_start(RTC_address,true);
-	I2C_read_ack(); // Ignore
+	if ( !I2C_write(0x00) )
+		I2C_write(0x81);
+
+stop:	I2C_stop();
+
+	_delay_us(20.0);	// Delay
+
+	while ( I2C_start(RTC_address|I2C_READ) )
+		_delay_us(10.0);
+
+	I2C_read_ack(); 	// Ignore
 	bmin = I2C_read_ack();
 	bhour = I2C_read_nack();
 	I2C_stop();
 
+	_delay_us(20.0);	// Delay
+
+#if 0
 	min10 = (bmin >> 4) & 0x0F;
 	min1 = bmin & 0x0F;
 	hr10 = (bhour >> 4) & 0x03;

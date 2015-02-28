@@ -33,8 +33,10 @@ i2crequ: .fill	1			; Request address and R/W bit
 i2cinit:
 	cbi	I2CDDR,I2CSDA		; Configure SDA as input
 	cbi	I2CDDR,I2CSCL		; Configure SCL input
-	sbi	I2COUT,I2CSDA		; Enable (weak) pullup for SDA
-	sbi	I2COUT,I2CSCL		; Enable (weak) pullup for SCL
+;	sbi	I2COUT,I2CSDA		; Enable (weak) pullup for SDA
+;	sbi	I2COUT,I2CSCL		; Enable (weak) pullup for SCL
+	cbi	I2COUT,I2CSDA		; Disable (weak) pullup for SDA
+	cbi	I2COUT,I2CSCL		; Disable (weak) pullup for SCL
 	ret
 
 ;---------------------------------------------------------------------
@@ -61,6 +63,41 @@ rbit:	sbic	I2CINP,I2CSCL
 	bst	r0,I2CSDA		; T=SDA
 	ret				; Consult r24.I2CSCL & T
 	
+;---------------------------------------------------------------------
+; Write a bit to master: Master controls SCL
+; r25.7 is written out
+;---------------------------------------------------------------------
+
+wbit:	sbic	I2CINP,I2CSCL		; Loop until
+	rjmp	wbit			;  SCL=0
+	sbrs	r25,7			; r25.7?
+	sbi	I2CDDR,I2CSDA		; Apply SDA to bus (data bit=0)
+2:	sbis	I2CINP,I2CSCL		; Loop until
+	rjmp	2b			;  SCL=1
+3:	sbic	I2CINP,I2CSCL		; Loop until
+	rjmp	3b			;  SCL=0 again
+	sbrs	r25,7			; Skip over if bit=1
+	cbi	I2CDDR,I2CSDA		; Release SDA from bus
+	ret
+
+;---------------------------------------------------------------------
+; Write byte in r25
+;---------------------------------------------------------------------
+
+wbyte:	sbic	I2COUT,I2CSDA		; Check internal SDA state..
+	sbi	I2CINP,I2CSDA		; ..toggle SDA=0 (not yet on bus)
+	ldi	r26,8			; Writing 8 data bits
+;
+1:	rcall	wbit			; Write 1 bit
+	rol	r25
+	dec	r26
+	brne	1b			; Until all 8 bits written
+;
+	sbic	I2COUT,I2CSCL		; This procedure to avoid glitching
+	sbi	I2CINP,I2CSCL		; Toggle SCL=0 (not yet on the bus)
+	sbi	I2CDDR,I2CSCL		; Assert SCL=0 on bus (hold)
+	ret
+
 ;---------------------------------------------------------------------
 ; Read 8 bits into r1
 ;
@@ -114,19 +151,25 @@ i2cslave:
 	brne	1b			; Loop back if not our address
 ;
 	mov	r24,r1			; Return r24 = slave address + R/W bit
+	sbic	I2COUT,I2CSCL		; Check internal SCL state..
+	sbi	I2CINP,I2CSCL		; toggle SCL=0 (not yet on the bus)
+	sbi	I2CDDR,I2CSCL		; Hold SCL=0 on bus until we ACK/NAK
 	ret
 
 ;---------------------------------------------------------------------
 ; Respond with ACK/NAK
 ;---------------------------------------------------------------------
 
-ack:	cbi	I2COUT,I2CSDA		; SDA=0
+ack:	sbic	I2COUT,I2CSDA		; Check internal state of SDA=0
+	sbi	I2CINP,I2CSDA		; ..toggle SDA=0 internally (not yet on bus)
 	sbi	I2CDDR,I2CSDA		; SDA=0 on bus
+
 nak:	cbi	I2CDDR,I2CSCL		; Release SCL hold on bus
-2:	sbis	I2CINP,I2CSCL
-	rjmp	2b			; Loop until SCL=1 (master)
-3:	sbic	I2CINP,I2CSCL
-	rjmp	3b			; Loop until SCL=0
+
+2:	sbis	I2CINP,I2CSCL		; Loop until
+	rjmp	2b			;  SCL=1 (master)
+3:	sbic	I2CINP,I2CSCL		; Loop until
+	rjmp	3b			;  SCL=0
 	nop
 	cbi	I2CDDR,I2CSDA		; Release SDA from bus (if asserted)
 	ret
@@ -152,35 +195,35 @@ main:	cli
 ;---------------------------------------------------------------------
 
 mloop:	rcall	i2cslave		; Wait for start bit
-	clr	r1			; for gcc
 	sts	i2crequ,r24		; Save request address & R/W bit
-	rcall	svc_start		; Call user with req info
+;
+	clr	r1			; for gcc
+	rcall	svc_start		; Call user with req info (arg1 = addr+RW)
 	sbrc	r24,0			; Continue if r24.0 = 1 else nak and reset
 	rjmp	2f			; Jump to service request
 	rcall	nak			; Tell master NAK
-	rjmp	666f			;  and tell application it's over
+	rjmp	mloop			;  and restart loop
 ;
 ;	Service Read/Write Request
 ;
-2:	rcall	ack			; ack initial request
-	lds	r24,i2crequ		; Fetch request byte
+2:	lds	r24,i2crequ		; Fetch request byte
 	sbrc	r24,I2CRW		; R/W?
 	rjmp	4f			; jmp to service master read req if I2CRW bit = 1
 ;
 ;	Service write request (read master's byte)
 ;
+3:	rcall	ack			; else ACK master's write request
 5:	rcall	rbyte			; r1=byte if C=0; else Start/Stop (T)
 	brcs	666f			; When C=1, do error recovery
-	cbi	I2COUT,I2CSCL		; SCL=0 (not on bus yet)
+	sbic	I2COUT,I2CSCL		; Check internal SCL status
+	sbi	I2CINP,I2CSCL		; ..toggle internal SCL=0 (not yet on bus)
 	sbi	I2CDDR,I2CSCL		; SCL=0 (on bus now) to hold ACK/NAK for now..
 ;
 	clr	r1			; for gcc
 	mov	r24,r1			; Arg 1 = data byte received
 	rcall	svc_write		; Service write request
-	sbrs	r24,0			; Continue? 
-	rjmp	7f			; r24.0=0, so go end writes
-	rcall	ack			; ACK read byte
-	rjmp	5b			; Repeat until master stops
+	sbrc	r24,0			; Skip if r24.0=0
+	rjmp	3b			; Else repeat with ACK if r24.0=1
 ;
 7:	rcall	nak			; Reply with NAK
 	rjmp	666f			;  and signal end
@@ -188,8 +231,14 @@ mloop:	rcall	i2cslave		; Wait for start bit
 ;	Service Master Read Requests
 ;
 4:	clr	r1			; gcc insists on this being zero
-	rcall	svc_read		; Byte returned in r24
-	rcall	nak
+	rcall	svc_read		; r24=ACK/NAK, r25=data
+	sbrs	r24,0
+	rjmp	44f			; Jump if svc_read says NAK
+	rcall	ack			; ACK master's read request / prior byte
+	rcall	wbyte			; Write data in r25
+	rjmp	4b			; Loop and send another
+
+44:	rcall	nak			; else NAK to master
 ;
 ;	Signal to app the ending
 ;

@@ -25,18 +25,22 @@ svc_start(uint8_t addr_rw) {
 
 uint8_t
 svc_write(uint8_t wrdata) {
-	PINB |= _BV(PB2);		// Toggle PB2 on master write
+	PINB |= _BV(LED);
+	PORTB |= _BV(PB2);		// Toggle PB2 on master write
 	return SVC_ACK;			// ACK
 }
 
 uint16_t
 svc_read(void) {
-	PINB |= _BV(PB3);		// Toggle PB3 on master read
-	return 0xFF << 8 | SVC_ACK;
+	PINB |= _BV(LED);
+	PORTB |= _BV(PB3);		// Toggle PB3 on master read
+	return 0xF5 << 8 | SVC_ACK;
 }
 
 void
 svc_end() {
+	PORTB &= ~_BV(PB2);
+	PORTB &= ~_BV(PB3);
 	PORTB &= ~_BV(LED);		// LED off
 }
 

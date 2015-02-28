@@ -26,9 +26,7 @@ I2C_init(void) {
 }
 
 uint8_t
-I2C_start(uint8_t address,bool readflag) {
-
-	address = (address & 0xFE) | (readflag ? 1 : 0);
+I2C_start(uint8_t address) {
 
 	// reset TWI control register
 	TWCR = 0;
@@ -57,7 +55,7 @@ I2C_start(uint8_t address,bool readflag) {
 	uint8_t twst = TW_STATUS & 0xF8;
 
 	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) )
-		return 1;
+		return 2;
 	
 	return 0;
 }
