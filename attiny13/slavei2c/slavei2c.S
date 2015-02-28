@@ -1,5 +1,5 @@
 ;---------------------------------------------------------------------
-; Test program for bit-banged i2c on ATtiny
+; SlaveI2C.S : I2C Slave Framework for ATtiny13
 ; Warren Gay  Fri Feb 20 20:27:21 2015
 ;---------------------------------------------------------------------
 
@@ -8,7 +8,6 @@
 #include <avr/io.h>
 	.list
 
-LED	= PB4
 I2CINP	= PINB
 I2COUT	= PORTB
 I2CDDR	= DDRB
@@ -18,35 +17,12 @@ I2CMASK	= (1<<I2CSDA|1<<I2CSCL)
 I2CRW	= 0				; Bit 0 is R=1/W=0
 
 	.text
-	.global	main
+	.global	main,i2caddr,i2crequ
+
 	.section .bss
+
 i2caddr: .fill	1			; I2C Address
 i2crequ: .fill	1			; Request address and R/W bit
-
-	.text
-;
-;	Called at initialization
-;
-svc_init:
-	ret
-
-;
-;	Called when a request arrives
-;
-svc_start:
-	ldi	r24,1
-	ret
-;
-;	Service request
-;
-svc_req:
-	ldi	r24,1
-	ret
-;
-;	Error cleanup for current request
-;
-svc_err:
-	ret
 
 	.text
 
@@ -79,6 +55,8 @@ rbit:	sbic	I2CINP,I2CSCL
 	eor	r24,r0			; xor orig SDA + SCL
 	andi	r24,I2CMASK		; Isolate SCL + SDA change bits
 	breq	1b			; Loop until a change occurs
+	cp	r24,I2CMASK		; Both change?
+	breq	rbit			; If so, then start over
 ;
 	bst	r0,I2CSDA		; T=SDA
 	ret				; Consult r24.I2CSCL & T
@@ -97,7 +75,6 @@ rbyte:	clr	r1			; r1=0: accumulator for data
 	sbrs	r24,I2CSCL		; Normal data bit? (SCL=0?)
 	rjmp	2f			; rjmp if Start/Stop (SCL=0)
 ;
-	sbi	PINB,PB2
 	lsl	r1			; Make room for new data bit
 	bld	r1,0			; r1.0 = T (data bit)
 	dec	r25			; One less bit
@@ -107,7 +84,6 @@ rbyte:	clr	r1			; r1=0: accumulator for data
 	ret				; C=0 Read ok, else T=1=Start/0=Stop
 ;
 2:	sec				; C=1 failed read:
-	sbi	PINB,PB3
 	ret				; T=1 is Start bit, else Stop bit
 
 ;---------------------------------------------------------------------
@@ -122,13 +98,10 @@ rbyte:	clr	r1			; r1=0: accumulator for data
 ;	received.
 ;---------------------------------------------------------------------
 i2cslave:
-	sts	i2caddr,r24		; Save I2C address
 1:	rcall	rbit			; Wait for start bit
-	sbi	PINB,LED
 	sbrc	r24,I2CSCL		; Start/Stop received?
 	rjmp	1b			; Loop until Start/Stop bit
 ;
-	sbi	PINB,LED
 	rcall	rbyte
 	brcs	1b			; Loop back if read failed
 ;
@@ -159,7 +132,7 @@ nak:	cbi	I2CDDR,I2CSCL		; Release SCL hold on bus
 	ret
 
 ;---------------------------------------------------------------------
-; Main Program
+; SlaveI2C Main Program
 ;---------------------------------------------------------------------
 
 main:	cli
@@ -168,34 +141,29 @@ main:	cli
 	out     CLKPR,r16       	; Start clock prescale change      
 	out     CLKPR,r17       	; Set clock prescale
 	sei
-
+;
 	rcall	i2cinit
-	sbi	DDRB,LED		; LED = output
-	cbi	PORTB,LED		; LED off
-;
-	sbi	DDRB,PB2		; PB2 = output
-	sbi	DDRB,PB3		; PB3 = output
+	clr	r1
+	rcall	svc_init		; Initialize app and get slave address
+	sts	i2caddr,r24		; Save returned slave address
 
-	rcall	svc_init
+;---------------------------------------------------------------------
+; Main I2C Slave loop
+;---------------------------------------------------------------------
 
-mloop:	cbi	PORTB,LED
-	sbi	PORTB,LED
-	cbi	PORTB,LED
-;
-	ldi	r24,0x68		; Slave addres == 0x68
-	rcall	i2cslave		; Wait for start bit
+mloop:	rcall	i2cslave		; Wait for start bit
+	clr	r1			; for gcc
 	sts	i2crequ,r24		; Save request address & R/W bit
-	rcall	svc_start		; Call user with start req info
+	rcall	svc_start		; Call user with req info
 	sbrc	r24,0			; Continue if r24.0 = 1 else nak and reset
 	rjmp	2f			; Jump to service request
-;
 	rcall	nak			; Tell master NAK
-	rjmp	8f			;  and reset
+	rjmp	666f			;  and tell application it's over
 ;
 ;	Service Read/Write Request
 ;
 2:	rcall	ack			; ack initial request
-	lds	r24,i2crequ		
+	lds	r24,i2crequ		; Fetch request byte
 	sbrc	r24,I2CRW		; R/W?
 	rjmp	4f			; jmp to service master read req if I2CRW bit = 1
 ;
@@ -206,48 +174,28 @@ mloop:	cbi	PORTB,LED
 	cbi	I2COUT,I2CSCL		; SCL=0 (not on bus yet)
 	sbi	I2CDDR,I2CSCL		; SCL=0 (on bus now) to hold ACK/NAK for now..
 ;
+	clr	r1			; for gcc
 	mov	r24,r1			; Arg 1 = data byte received
-	rcall	svc_req			; Service write request
+	rcall	svc_write		; Service write request
 	sbrs	r24,0			; Continue? 
 	rjmp	7f			; r24.0=0, so go end writes
-;
-	sbi	PORTB,LED
-	sbi	PORTB,PB2
-	sbi	PORTB,PB3
-	cbi	PORTB,LED
-	cbi	PORTB,PB2
-	cbi	PORTB,PB3
 	rcall	ack			; ACK read byte
 	rjmp	5b			; Repeat until master stops
 ;
-;	End write sequence
-;
-7:	rcall	nak
-	rjmp	9f
+7:	rcall	nak			; Reply with NAK
+	rjmp	666f			;  and signal end
 ;
 ;	Service Master Read Requests
 ;
-4:	rcall	nak
-	rjmp	8f			; Not yet supported
+4:	clr	r1			; gcc insists on this being zero
+	rcall	svc_read		; Byte returned in r24
+	rcall	nak
 ;
-;	Invoke user error routine
+;	Signal to app the ending
 ;
-666:	rcall	svc_err			; Let user know that it failed
-;
-;	Eroneous end
-;
-8:	cbi	PORTB,LED
-	sbi	PORTB,LED
-	cbi	PORTB,LED
-	sbi	PORTB,LED
+666:	clr	r1			; for gcc
+	rcall	svc_end			; Let app know that it ended/failed
 	rjmp	mloop			; Go wait for next request
-;
-;	Successful end
-;
-9:	cbi	PORTB,LED
-	cbi	DDRB,PB2
-	cbi	DDRB,PB3
-	rjmp	mloop
 
 ;---------------------------------------------------------------------
 ; End testmain.S

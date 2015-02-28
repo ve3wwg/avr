@@ -40,17 +40,17 @@ AS	= avr-as
 	avr-objcopy -j .text -j .data -O ihex $< $@
 	avr-size --format=avr --mcu=$(DEVICE) $<
 
-OBJ	= testmain.o
+OBJ	= slavei2c.o application.o
 
-all:	testmain.hex 
+all:	slavei2c.hex 
 
-testmain.elf: $(OBJ)
-	$(CC) $(OBJ) -o testmain.elf
+slavei2c.elf: $(OBJ)
+	$(CC) $(OBJ) -o slavei2c.elf
 
-testmain.o: Makefile testmain.S
+slavei2c.o: Makefile slavei2c.S
 
-flash:	testmain.hex
-	$(AVRDUDE) -p $(PDEV) -U flash:w:testmain.hex:i
+flash:	slavei2c.hex
+	$(AVRDUDE) -p $(PDEV) -U flash:w:slavei2c.hex:i
 
 readfuse:
 	$(AVRDUDE) -p $(PDEV) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
@@ -61,14 +61,14 @@ clean:
 clobber: clean
 	rm -f *.elf *.hex sim.out .errs.t *.list 
 
-disasm:	testmain.elf
-	avr-objdump -d testmain.elf
+disasm:	slavei2c.elf
+	avr-objdump -d slavei2c.elf
 
 #
 #       Debug with simavr
 #
-gdb:    testmain.elf
-	simavr -g -f 8000000 -m attiny13a testmain.elf 1>sim.out 2>&1 & echo $$! >.simavr_pid
+gdb:    slavei2c.elf
+	simavr -g -f 8000000 -m attiny13a slavei2c.elf 1>sim.out 2>&1 & echo $$! >.simavr_pid
 	 @ps -fp $$(cat .simavr_pid)
 #       @sleep 4
 	avr-gdb -x gdb.simavr
