@@ -6,10 +6,13 @@
 # AVRDUDE = avrdude -c boarduino -c arduino -P /dev/tty.usbserial-A6005XBY -B $(PGBAUD)
 
 # usbasp ISP Programmer
-# AVRDUDE = avrdude -c usbasp
+AVRDUDE = avrdude -c usbasp
 
 # Arduino Uno Clone
-AVRDUDE = avrdude -c arduino -P /dev/tty.wchusbserialfa130 -B 115200
+# AVRDUDE = avrdude -c arduino -P /dev/tty.wchusbserialfa130 -B 115200
+
+# FabISP
+# AVRDUDE = avrdude -c usbtiny
 
 ######################################################################
 #  End Makefile.programmer
