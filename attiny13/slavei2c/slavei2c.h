@@ -18,8 +18,6 @@ uint8_t svc_start(uint8_t addr_rw);	// Start a slave transaction
 uint8_t svc_write(uint8_t wrdata);	// Service a master write operation
 uint16_t svc_read(void);		// Service a master read operation
 
-void svc_ended(void);			// Called when a transaction ends/fails
-
 #endif // I2CSLAVE_H
 
 // End slavei2c.h

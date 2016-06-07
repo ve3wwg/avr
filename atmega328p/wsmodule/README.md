@@ -5,7 +5,8 @@ counters and shift registers.
 This project implemented 4 cherry keyswitches with LED (shines through
 the keycap). Each LED is driven by the debounced keyswitch inputs. In
 addition, the software drives another 4 digital outputs D1-D4 that are 
-completely isolated from the LEDs.
+completely isolated from the LEDs. Each key simply toggles the key
+from one state to the next.
 
 To provide low frequency oscillator sources, D1 and D2 can also be
 pulsed outputs according to potentiometers P1 and P2. These are 

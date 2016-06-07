@@ -19,29 +19,42 @@ svc_init() {
 
 uint8_t
 svc_start(uint8_t addr_rw) {
+#if 0
+	PORTB &= ~_BV(PB2);
+//	PORTB &= ~_BV(PB3);
+	PORTB &= ~_BV(LED);		// LED off
+
+	PINB |= _BV(PB2);
+	PINB |= _BV(PB2);
+	PINB |= _BV(PB2);
+
 	PORTB |= _BV(LED);		// LED on
+#endif
 	return SVC_ACK;			// Accept slave request
 }
 
 uint8_t
 svc_write(uint8_t wrdata) {
+#if 0
+	PINB |= _BV(LED);
+	PINB |= _BV(LED);
 	PINB |= _BV(LED);
 	PORTB |= _BV(PB2);		// Toggle PB2 on master write
+#endif
 	return SVC_ACK;			// ACK
 }
 
 uint16_t
 svc_read(void) {
+#if 0
 	PINB |= _BV(LED);
-	PORTB |= _BV(PB3);		// Toggle PB3 on master read
+	PINB |= _BV(LED);
+	PINB |= _BV(LED);
+	PINB |= _BV(LED);
+	PINB |= _BV(LED);
+//	PORTB |= _BV(PB3);		// Toggle PB3 on master read
+#endif
 	return 0xF5 << 8 | SVC_ACK;
-}
-
-void
-svc_end() {
-	PORTB &= ~_BV(PB2);
-	PORTB &= ~_BV(PB3);
-	PORTB &= ~_BV(LED);		// LED off
 }
 
 // End application.cpp

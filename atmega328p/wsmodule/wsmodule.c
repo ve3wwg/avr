@@ -8,7 +8,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
-#define COUNT	400			// Timer count
+#define COUNT	500			// Timer count
 
 static const int adc_lim = 1016;	// Pulse output if < than this (1 & 2)
 
@@ -17,7 +17,6 @@ static uint8_t st[4] = { 0, 0, 0, 0 };	// State of each output
 static uint8_t pb[4] = { 2, 2, 2, 2 };	// State of the push button
 static uint16_t av[2] = { 0, 0 };	// Analog values for ADC0, 1
 static uint16_t tm[2] = { 0, 0 };	// Timer count down values 0/1
-static uint8_t bb[2] = { 0, 0 };	// Osc states
 static uint8_t adcx = 0;		// Which ADC is operating
 
 /*********************************************************************
@@ -171,8 +170,8 @@ ISR(TIMER1_COMPA_vect) {
 
 	if ( av[x] < adc_lim ) {
 		if ( !tm[x] ) {
-			tm[x] = av[x] * 5;
-			setport(x,bb[x]^=1);
+			tm[x] = av[x] << 2;
+			setport(x,st[x]^=1);
 		} else	{
 			--tm[x];
 		}
