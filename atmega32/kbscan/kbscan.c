@@ -8,12 +8,40 @@
 
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
 #define KEY_NONE	(9*8-1)
 
-static uint8_t keys[9*8];
-static uint8_t key_rx = KEY_NONE;
-static uint16_t leds[8];
+static uint8_t keys[9*8];		// Keybounce for each key col x row form
+static uint8_t key_rx = KEY_NONE;	// Last sensed key-press
+static uint8_t key_queued = 0;		// 1 if queued for SPI send
+static uint16_t leds[8];		// LED settings in row x col form
+
+/*********************************************************************
+ * SPI Interrupt Service Routine
+ *********************************************************************/
+
+ISR(SPI_STC_vect) {
+	uint8_t cmd = SPDR;
+	uint8_t wordx, bitx;
+
+	cmd = SPDR;			// Read sent byte (LED command)
+
+	if ( key_queued ) {
+		SPDR = key_rx;		// Queue byte to reply with
+		key_queued = 0;		// Mark as sent
+	} else	{
+		SPDR = KEY_NONE;	// No keystroke being sent
+	}
+
+	if ( cmd != 0xFF ) {			// If not LED NOP..
+		wordx = cmd & 7;		// Lower 3 bits index leds[]
+		bitx = 1 << ((cmd >> 3) & 0x0F);// Bit mask for LED in leds[]
+		if ( cmd & 0b10000000 )		// Enabling LED?
+			leds[wordx] |= bitx;	// Yes, set LED bit on
+		else	leds[wordx] &= ~bitx;	// No, reset LED bit off
+	}
+}
 
 /*********************************************************************
  * Main Program
@@ -25,23 +53,26 @@ main() {
 	int x;
 	int m = 0;
 	
-	ADCSRA 	&= ~_BV(ADEN);	// Disable ADC
-	ACSR	&= _BV(ACD);	// Comparator off
+	cli();
 
-	MCUCR &= ~PUD;		// Make sure pullups not disabled
+	ADCSRA 	&= ~_BV(ADEN);		// Disable ADC
+	ACSR	&= _BV(ACD);		// Comparator off
 
-	ASSR &= ~_BV(AS2);	// No TOSC2 to pin 2
-	TWCR &= ~_BV(TWEN);	// Disable I2C
-	MCUSR |= _BV(JTD);	// Disable JTAG
-	MCUSR |= _BV(JTD);	// Disable JTAG (needs to be done twice)
-	UCSRB = 0;		// Disable UART on port D
+	MCUCR &= ~PUD;			// Make sure pullups not disabled
+
+	ASSR &= ~_BV(AS2);		// No TOSC2 to pin 2
+	TWCR &= ~_BV(TWEN);		// Disable I2C
+	MCUSR |= _BV(JTD);		// Disable JTAG
+	MCUSR |= _BV(JTD);		// Disable JTAG (needs to be done twice)
+	UCSRB = 0;			// Disable UART on port D
 	GICR &= ~(_BV(INT1)|_BV(INT0));
 	TCCR1A = 0;
 	TCCR1B = 0;
 
 	// Inputs:
 	DDRD &= ~(_BV(DDD0)|_BV(DDD1)|_BV(DDD2)|_BV(DDD3)|_BV(DDD4)|_BV(DDD5)|_BV(DDD6)|_BV(DDD7));
-	DDRA &= ~ _BV(DDA1);
+	DDRA &= ~ _BV(DDA1);		// PORTA1 is input
+	DDRB &= ~ _BV(DDB4);		// SPI /SS is input
 
 	PORTD = _BV(PORTD0)|_BV(PORTD1)|_BV(PORTD2)|_BV(PORTD3)|_BV(PORTD4)|_BV(PORTD5)|_BV(PORTD6)|_BV(PORTD7);	// Pullups on
 	PORTA = _BV(PORTA1);												// PA1 also
@@ -52,6 +83,14 @@ main() {
 	DDRA |= _BV(DDA0);
 
 	PORTA |= _BV(PORTA0);		// Disable blink LED
+
+	// SPI
+	SPCR &= ~(_BV(DORD)|_BV(MSTR));	// DORD=0 MSB first, MSTR=0 for slave mode
+	SPCR |= _BV(SPIE)|_BV(SPE);	// Interrupt enable + SPI enable
+	x = SPSR;
+	x = SPDR;			// Clear WCOL & SPIF if set
+
+	sei();
 
 	for ( x=0; x<sizeof keys; ++x )
 		keys[x] = 0;
@@ -82,7 +121,12 @@ main() {
 
 			if ( rx != key_rx && (keys[rx] & 0x07) == 0x07 ) {
 				PORTA &= ~_BV(PORTA0);
+
+				cli();
 				key_rx = rx;			// Save key down index
+				key_queued = 1;			// Mark ready for SPI transmission
+				sei();
+
 				leds[x] ^= km;			// Toggle LED
 			}
 
