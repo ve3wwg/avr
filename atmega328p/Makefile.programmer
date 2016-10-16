@@ -3,10 +3,11 @@
 ######################################################################
 
 # USB Boarduino
-# AVRDUDE = avrdude -c boarduino -c arduino -P /dev/tty.usbserial-A6005XBY -B $(PGBAUD)
+BOARDUINO = avrdude -c boarduino -c arduino -P /dev/tty.usbserial-A6005XBY # -b $(PGBAUD)
 
 # usbasp ISP Programmer
-AVRDUDE = avrdude -c usbasp
+AVRDUDE = avrdude -c usbasp -B5
+USBASP = avrdude -c usbasp -B5
 
 # Arduino Uno Clone
 # AVRDUDE = avrdude -c arduino -P /dev/tty.wchusbserialfa130 -B 115200
