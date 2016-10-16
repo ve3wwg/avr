@@ -48,6 +48,9 @@ flash:	wsmodule.hex
 readfuse:
 	$(PROGRAMMER) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
 
+debrick:
+	$(PROGRAMMER) -e -U lfuse:w:0x62:m -U hfuse:w:0xd9:m -U efuse:w:0x07:m
+
 clean:
 	rm -f *.o
 
