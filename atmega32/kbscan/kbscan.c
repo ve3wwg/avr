@@ -85,8 +85,8 @@ main() {
 	PORTA |= _BV(PORTA0);		// Disable blink LED
 
 	// SPI
-	SPCR &= ~(_BV(DORD)|_BV(MSTR));	// DORD=0 MSB first, MSTR=0 for slave mode
-	SPCR |= _BV(SPIE)|_BV(SPE);	// Interrupt enable + SPI enable
+	SPCR &= ~(_BV(DORD)|_BV(MSTR)|_BV(CPOL)|_BV(CPHA));	// DORD=0 MSB first, MSTR=0 for slave mode, SPI mode 0,0
+	SPCR |= _BV(SPIE)|_BV(SPE);				// Interrupt enable + SPI enable
 	x = SPSR;
 	x = SPDR;			// Clear WCOL & SPIF if set
 
