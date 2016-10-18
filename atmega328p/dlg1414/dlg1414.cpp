@@ -75,6 +75,14 @@
 //          refer to a port other than D, you will need
 //          to do some software porting.
 //
+//      3.  If your code writes _continually_ to the DLG-1414
+//          modules, you will likely see twinkling in the
+//          character output. This is due to the module's
+//          internal scan of the characters being continually
+//          interrupted by your writes. It is best to write
+//          messages to the display only when the content
+//          has changed.
+//
 //////////////////////////////////////////////////////////////////////
     
 #include <inttypes.h>
@@ -138,7 +146,6 @@ class DLG_1414 {
 	unsigned	pbdata;		// Input push button data
 
 protected:
-	void setup();				// Internal
 	void write_cmd(uint32_t cmd);           // Internal
 
 public:	DLG_1414();
@@ -154,26 +161,12 @@ public:	DLG_1414();
 
 DLG_1414::DLG_1414() {
 	DDRD |= _BV(CP)|_BV(STR)|_BV(D); // outputs
-	DDRD &= ~_BV(PBD);		 // input
-        PORTD &= ~(_BV(CP)|_BV(STR)|_BV(D));
+	DDRD &= ~_BV(PBD);		// input
+        PORTD &= ~(_BV(CP)|_BV(D));	// CP=1, D=1 
+	PORTD |= _BV(STR);		// STR=1
 	leds = 0;
 	pbdata = 0;
 };
-
-//////////////////////////////////////////////////////////////////////
-// Protected: Initialize command word
-//////////////////////////////////////////////////////////////////////
-
-void
-DLG_1414::setup() {
-
-	u.cmd = 0;
-	u.sr.wr03 = u.sr.wr47 = 0x0F;	// all /WR=1
-
-	// Maintain existing LED status
-	u.sr.led03 = (leds & 0x0F) ^ 0x0F;
-	u.sr.led47 = ((leds >> 4) & 0x0F) ^ 0x0F;
-}
 
 //////////////////////////////////////////////////////////////////////
 // Internal: Write a 24-bit command to display driver pcb
@@ -204,7 +197,6 @@ DLG_1414::write_cmd(uint32_t cmd) {
 	}
 
 	PORTD |= _BV(STR);			// STR=1
-	PORTD &= ~_BV(STR);			// STR=0
 	PORTD &= ~_BV(CP);			// CP=0 (this also sets Q7S=QP7 for IC3)
 }
 
@@ -216,17 +208,16 @@ unsigned
 DLG_1414::read(bool strobe) {
 	int x;
 
-	if ( strobe ) {
-		setup();			// Reset cmd word
-		write_cmd(u.cmd);
-	}
-
+	PORTD |= _BV(D);
+	PORTD &= ~_BV(STR);
 	pb.indata = 0;
 	for ( x=0; x<8; ++x ) {
 		pb.indata = (pb.indata << 1) | !(PIND & _BV(PBD));
 		PORTD |= _BV(CP);
 		PORTD &= ~_BV(CP);
 	}
+
+	write_cmd(u.cmd);
 
 	// Unscramble this willy nilly mess
 	pbdata =  pb.sr.pb7 << 7
@@ -255,7 +246,13 @@ DLG_1414::writec(unsigned char c,unsigned digit) {
 		msel = (1 << m);	// First group
 	else 	msel = (uint32_t(1) << uint32_t(m-4)) << 20;
 
-	setup();			// Initialize cmd word
+	u.cmd = 0;
+	u.sr.wr03 = u.sr.wr47 = 0x0F;	// all /WR=1
+
+	// Maintain existing LED status
+	u.sr.led03 = (leds & 0x0F) ^ 0x0F;
+	u.sr.led47 = ((leds >> 4) & 0x0F) ^ 0x0F;
+
 	u.sr.a0 = !!(d & 1);		// A0
 	u.sr.a1 = !!(d & 2);		// A1
 	u.sr.d0 = !!(uc & 0x01);	// D0 ..
@@ -286,9 +283,11 @@ DLG_1414::set_led(bool b,unsigned led) {
 	else	leds &= ~mask;
 
 	if ( leds != before ) {
-		setup();
+		u.sr.led03 = (leds & 0x0F) ^ 0x0F;
+		u.sr.led47 = ((leds >> 4) & 0x0F) ^ 0x0F;
 		write_cmd(u.cmd);
 	}
+
 	return !!(leds & mask);
 }
 
@@ -299,9 +298,10 @@ DLG_1414::set_led(bool b,unsigned led) {
 int
 main() {
 	DLG_1414 dlg1414;	// Instantiated class
-	unsigned char c;	// Temp. Character to display
-	unsigned dx;		// Temp. Digit index
-	unsigned pb;		// Temp. Push button data
+	char c;			// Character to display
+	unsigned dx;		// Digit index
+	uint8_t pb, ppb = 0;	// PB data, prev PB data
+	uint8_t delta;		// Changes in PB data
 
 #if 0
 	for (;;) {
@@ -325,15 +325,21 @@ main() {
 
 	for (;;) {
 		pb = dlg1414.read();	// Read pb
+		delta = ppb ^ pb;	// Note changes
+		ppb = pb;		// Save for next loop
+
 		for ( int x=0; x<8; ++x ) {
-			c = 'A'+x;
-			if ( pb & 1 )
-				c = 'a'+x;
-			dlg1414.writec(c,x);
-			dlg1414.set_led(pb&1,x);
+			if ( delta & 1 ) { // PB changed?
+				if ( pb & 1 )
+					c = 'a';
+				else	c = 'A';
+				dlg1414.writec(c+x,x);
+				dlg1414.set_led(pb & 1,x);
+			}
 			pb >>= 1;
+			delta >>= 1;
 		}
-//		_delay_ms(600);
+		_delay_ms(1);
 	}
 
 	return 0;
