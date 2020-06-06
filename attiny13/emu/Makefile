@@ -66,32 +66,12 @@ readfuse:
 	$(AVRDUDE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
 
 clean:
-	rm -f *.o firefly.vcd
-	rm -f .simavr_pid sim.out firefly.vcd
+	rm -f *.o
 
 clobber: clean
-	rm -f *.elf *.hex simul.out .errs.t
+	rm -f *.elf *.hex .errs.t
 
 disasm:	emu.elf
 	avr-objdump -d emu.elf
-
-backup: clobber
-	cd .. && tar -cvzHf firefly.tar.gz --exclude include firefly
-
-#
-#	Debug with simavr
-#
-gdb:	firefly.elf
-	simavr -g -f 8000000 -m attiny13a firefly.elf 1>sim.out 2>&1 & echo $$! >.simavr_pid
-	@ps -fp $$(cat .simavr_pid)
-	@sleep 3
-	avr-gdb -x gdb.simavr
-	@kill $$(cat .simavr_pid)
-
-#
-#	Simulate firefly without using avr-gdb
-#
-trace:	firefly_trace.elf
-	simavr firefly_trace.elf
 
 # End
