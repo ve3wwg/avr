@@ -706,6 +706,26 @@ test28:	ldi	16,0x53
 	breq	2f
 	break		; Fail
 2:
+;
+;	LSR
+;
+test29:	ldi	19,0xF5
+	lsr	19
+	brcs	2f
+	break		; Fail
+2:	cpi	19,0x7A
+	breq	2f
+	break		; Fail
+2:	lsr	19
+	lsr	19
+	lsr	19
+	lsr	19
+	lsr	19
+	lsr	19
+	lsr	19
+	breq	2f
+	break		; Fail
+2:
 
 end:	break
 	rjmp	8b
