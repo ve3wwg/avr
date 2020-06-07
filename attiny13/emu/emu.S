@@ -393,6 +393,26 @@ test12:	eor	16,16
 	breq	2f
 	break		; Fail	
 2:	
+;
+;	BRBS/BRBC
+;
+test13:	set
+	brbs	6,2f
+	break		; Fail	
+2:	clt
+	brbc	6,2f
+	break		; Fail	
+2:
+;
+;	BSET
+;
+test14:	bset	0
+	brcs	2f
+	break		; Fail	
+2:	bset	6
+	brts	2f
+	break		; Fail	
+2:
 ;	
 end:	break
 	rjmp	8b
