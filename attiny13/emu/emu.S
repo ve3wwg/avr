@@ -305,6 +305,14 @@ test9:	ldi	16,0xF5
 	and	0,16
 	breq	2f
 	break		; Fail
+2:	ldi	16,0xFE
+	andi	16,0xE8
+	cpi	16,0xE8
+	breq	2f
+	break		; Fail
+2:	andi	16,1
+	breq	2f
+	break		; Fail
 2:
 ;
 end:	break
