@@ -315,6 +315,27 @@ test9:	ldi	16,0xF5
 	break		; Fail
 2:
 ;
+;	ASR
+;
+test10:	ldi	20,0xC2
+	asr	20
+	cpi	20,0xE1
+	breq	2f
+	break		; Fail	
+2:	asr	20
+	brmi	3f
+	break		; Fail	
+3:	brcs	4f
+	break		; Fail	
+4:	ldi	21,0x7E
+	asr	21
+	cpi	21,0x3F	
+	breq	4f
+	break		; Fail	
+4:	brcc	4f	
+	break		; Fail	
+4:	
+;	
 end:	break
 	rjmp	8b
 
