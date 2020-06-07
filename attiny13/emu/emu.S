@@ -512,8 +512,111 @@ test21:	in	16,DDRB
 	breq	2f
 	break		; Fail
 2:	
-
 ;
+;	LD X
+;
+test22:	eor	0,0	; r0 = 0
+	eor	1,1
+	inc	1	; r1 = 1
+	ldi	26,0
+	eor	27,27	; x=0
+	ld	16,X
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:	inc	26
+	ld	16,x
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	dec	26
+	ld	16,X+
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:	ld	16,X+
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	ld	16,-X
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	ld	16,-X
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:
+;
+;	LD Y
+;
+test23:	eor	0,0
+	eor	1,1
+	inc	1
+	ldi	28,0
+	eor	29,29	; x=0
+	ld	16,X
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:	inc	28
+	ld	16,Y
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	dec	28
+	ld	16,Y+
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:	ld	16,Y+
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	ld	16,-Y
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	ld	16,-Y
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:
+;
+;	LD Z
+;
+test24:	eor	0,0
+	eor	1,1
+	inc	1
+	ldi	30,0
+	eor	31,31	; x=0
+	ld	16,Z
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:	inc	30
+	ld	16,Z
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	dec	30
+	ld	16,Z+
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:	ld	16,Z+
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	ld	16,-Z
+	cpi	16,1
+	breq	2f
+	break		; Fail
+2:	ld	16,-Z
+	cpi	16,0
+	breq	2f
+	break		; Fail
+2:
 end:	break
 	rjmp	8b
 
