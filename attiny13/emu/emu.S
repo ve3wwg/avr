@@ -483,6 +483,37 @@ test18:	eor	31,31
 	break		; Fail
 2:	
 ;
+;	ICALL
+;
+test19:	ldi	30,pm_lo8(called)
+	ldi	31,pm_hi8(called)
+	eor	29,29
+	icall	
+	cpi	29,0x29
+	breq	2f
+	break		; Fail
+called:	ldi	29,0x29
+	ret
+	break		; Fail
+2:
+;
+;	IJMP
+;
+test20:	ldi	30,pm_lo8(jump)
+	ldi	31,pm_hi8(jump)
+	ijmp
+	break		; Fail
+jump:	
+;
+;	IN
+;
+test21:	in	16,DDRB
+	cpi	16,0x3C
+	breq	2f
+	break		; Fail
+2:	
+
+;
 end:	break
 	rjmp	8b
 
