@@ -680,6 +680,32 @@ tword:	lpm	16,Z
 	breq	2f
 	break		; Fail
 2:
+;
+;	LSL
+;
+test28:	ldi	16,0x53
+	mov	0,16
+	mov	1,16
+	lsl	16
+	cpi	16,0xA6
+	breq	2f
+	break		; Fail
+2:	lsl	0
+	mov	17,0
+	cpi	17,0xA6
+	breq	2f
+	break		; Fail
+2:	mov	18,1
+	lsl	18
+	brcc	2f
+	break		; Fail
+2:	lsl	18
+	brcs	2f
+	break		; Fail
+2:	cpi	18,0x4C
+	breq	2f
+	break		; Fail
+2:
 
 end:	break
 	rjmp	8b
