@@ -335,6 +335,43 @@ test10:	ldi	20,0xC2
 4:	brcc	4f	
 	break		; Fail	
 4:	
+;
+;	BCLR tests
+;
+test11:	sec
+	bclr	0
+	brcc	2f
+	break		; Fail	
+2:	sez
+	bclr	1
+	brne	2f
+	break		; Fail	
+2:	sen
+	bclr	2
+	brpl	2f
+	break		; Fail	
+2:	sev
+	bclr	3
+	brvc	2f
+2:	ses
+	bclr	4
+	brge	2f
+	break		; Fail	
+2:	seh
+	bclr	5
+	brhc	2f
+	break		; Fail	
+2:	set
+	bclr	6
+	brtc	2f
+	break		; Fail	
+2:	sei
+	bclr	7
+	brid	2f
+	break		; Fail	
+2:
+;
+
 ;	
 end:	break
 	rjmp	8b
