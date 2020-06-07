@@ -644,6 +644,19 @@ test25:	eor	0,0
 	breq	2f
 	break		; Fail
 2:
+;
+;	LDS
+;	Must run after test25
+;
+test26:	lds	21,0
+	lds	22,1
+	cpi	21,0
+	breq	2f
+	break		; Fail
+2:	cpi	22,1
+	breq	2f
+	break		; Fail
+2:
 
 end:	break
 	rjmp	8b
