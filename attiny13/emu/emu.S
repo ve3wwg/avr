@@ -286,6 +286,27 @@ test8:	ldi	16,1
 	break		; Fail
 2:
 ;
+;	AND
+;
+test9:	ldi	16,0xF5
+	ldi	17,0x86
+	and	16,17
+	cpi	16,0x84
+	breq	2f
+	break		; Fail
+2:	mov	0,16
+	ldi	19,7
+	and	0,19	
+	ldi	20,4
+	cp	0,20
+	breq	2f
+	break		; Fail
+2:	ldi	16,0xF0
+	and	0,16
+	breq	2f
+	break		; Fail
+2:
+;
 end:	break
 	rjmp	8b
 
