@@ -13,6 +13,7 @@
 	.equ	t,6
 	.equ	i,7
 	.equ	sreg,63
+	.equ	IO_Base,0x0020
 
 	rjmp	test1
 	rjmp	ext_int0
@@ -429,6 +430,40 @@ test15:	ldi	25,0xB9
 2:	bst	25,0
 	brts	2f
 	break		; Fail	
+2:
+;
+;	CBI/SBI
+;
+test16:	cbi	DDRB,0
+	cbi	DDRB,1
+	sbi	DDRB,2
+	sbi	DDRB,3
+	sbi	DDRB,4
+	sbi	DDRB,5
+	lds	16,DDRB+IO_Base
+	cpi	16,0x3C
+	breq	2f
+	break
+2:
+;
+;	CBR/SBR
+;
+test17:	eor	29,29
+	sbr	29,1
+	cpi	29,1
+	breq	2f
+	break		; Fail
+2:	cbr	29,1
+	cpi	29,0
+	breq	2f
+	break		; Fail
+2:	sbr	29,0x80
+	cpi	29,0x80
+	breq	2f
+	break		; Fail
+2:	cbr	29,0x80
+	cpi	29,0
+	breq	2f
 2:
 end:	break
 	rjmp	8b
