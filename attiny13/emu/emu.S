@@ -371,7 +371,28 @@ test11:	sec
 	break		; Fail	
 2:
 ;
-
+;	BLD
+;
+test12:	eor	16,16
+	set
+	bld	16,2
+	cpi	16,0x04
+	breq	2f
+	break		; Fail	
+2:	bld	16,1
+	cpi	16,0x06
+	breq	2f
+	break		; Fail	
+2:	bld	16,0
+	cpi	16,0x07
+	breq	2f
+	break		; Fail	
+2:	clt
+	bld	16,1
+	cpi	16,0x05
+	breq	2f
+	break		; Fail	
+2:	
 ;	
 end:	break
 	rjmp	8b
