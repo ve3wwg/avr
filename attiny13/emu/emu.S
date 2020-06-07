@@ -657,6 +657,29 @@ test26:	lds	21,0
 	breq	2f
 	break		; Fail
 2:
+;
+;	LPM
+;
+test27:	ldi	30,pm_lo8(tword)
+	ldi	31,pm_hi8(tword)
+tword:	lpm	16,Z
+	cpi	16,0x04
+	breq	2f
+	break		; Fail
+2:	lpm		; -> r0
+	mov	16,0
+	cpi	16,0x04
+	breq	2f
+	break		; Fail
+2:	lpm	17,Z+
+	cpi	17,0x04
+	breq	2f
+	break		; Fail
+2:	lpm	18,Z+
+	cpi	18,0x91
+	breq	2f
+	break		; Fail
+2:
 
 end:	break
 	rjmp	8b
