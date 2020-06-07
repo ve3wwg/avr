@@ -275,6 +275,15 @@ test8:	ldi	16,1
 	break		; Fail
 	breq	2f
 	break		; Fail
+2:	ldi	25,1
+	ldi	24,5
+	adiw	24,3
+	cpi	24,8
+	breq	2f
+	break		; Fail
+	cpi	25,1
+	breq	2f
+	break		; Fail
 2:
 ;
 end:	break
