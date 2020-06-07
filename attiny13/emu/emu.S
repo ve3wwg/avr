@@ -617,6 +617,34 @@ test24:	eor	0,0
 	breq	2f
 	break		; Fail
 2:
+;
+;	LDD Y/Z
+;
+test25:	eor	0,0
+	eor	1,1
+	inc	1
+	mov	28,0
+	mov	29,0	; Y = 0
+	ldd	17,Y+1
+	cpi	17,1
+	breq	2f
+	break		; Fail
+2:	ldd	18,Y+0
+	cpi	18,0	
+	breq	2f
+	break		; Fail
+2:	mov	30,0
+	mov	31,0
+	ldd	19,Z+1
+	cpi	19,1
+	breq	2f
+	break		; Fail
+2:	ldd	20,Z+0
+	cpi	20,0
+	breq	2f
+	break		; Fail
+2:
+
 end:	break
 	rjmp	8b
 
