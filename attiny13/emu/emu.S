@@ -414,6 +414,22 @@ test14:	bset	0
 	break		; Fail	
 2:
 ;	
+;	BST
+;	
+test15:	ldi	25,0xB9
+	bst	25,7
+	brts	2f
+	break		; Fail	
+2:	bst	25,6
+	brtc	2f
+	break		; Fail	
+2:	bst	25,1
+	brtc	2f
+	break		; Fail	
+2:	bst	25,0
+	brts	2f
+	break		; Fail	
+2:
 end:	break
 	rjmp	8b
 
