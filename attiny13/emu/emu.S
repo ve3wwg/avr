@@ -465,6 +465,24 @@ test17:	eor	29,29
 	cpi	29,0
 	breq	2f
 2:
+;
+;	COM
+;
+test18:	eor	31,31
+	cpi	31,0
+	breq	2f
+	break		; Fail
+2:	com	31
+	cpi	31,0xFF
+	breq	2f
+	break		; Fail
+2:	ldi	30,0x95
+	com	30
+	cpi	30,0x6A
+	breq	2f
+	break		; Fail
+2:	
+;
 end:	break
 	rjmp	8b
 
