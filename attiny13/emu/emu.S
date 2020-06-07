@@ -252,6 +252,31 @@ test7:	ldi	19,0xFC
 	break		; Fail
 2:	
 ;
+;	MOV/ADD/ADC
+;
+test8:	ldi	16,1
+	ldi	17,2
+	mov	18,16
+	sec
+	add	18,17
+	cpi	18,3
+	breq	2f
+	break		; Fail
+2:	mov	18,16
+	sec
+	adc	18,17
+	cpi	18,4
+	breq	2f
+	break		; Fail
+2:	ldi	16,0xFF
+	ldi	17,1
+	add	16,17
+	brcs	2f
+	break		; Fail
+	breq	2f
+	break		; Fail
+2:
+;
 end:	break
 	rjmp	8b
 
