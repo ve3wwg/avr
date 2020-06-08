@@ -38,7 +38,7 @@ AS	= avr-as
 	$(CXX) -c $(OPTS) $< -o $@
 
 .S.o:
-	$(CC) -x assembler-with-cpp -c -Wa,-adhlns=emu.lst -nostdlib $(DEFNS) $< -o $@
+	$(CC) -x assembler-with-cpp -c -Wa,-adhlns=$*.lst -nostdlib $(DEFNS) $< -o $@
 
 .c.s:
 	$(CC) -S $< -o $@
@@ -47,15 +47,15 @@ AS	= avr-as
 	@rm -f $*.hex
 	avr-objcopy -j .text -j .data -O ihex $< $@
 	avr-size --format=avr --mcu=$(DEVICE) $<
-	@sed '1,/.section .text/d' <emu.lst >emu.l && mv emu.l emu.lst
-#	avr-objdump -D emu.elf
+	@sed '1,/.section .text/d' <$*.lst >emu.l && mv emu.l $*.lst
 
-all:	emu.hex
+.o.elf: 
+	$(CC) $< -nostdlib -o $*.elf
 
-emu.elf: emu.o
-	$(CC) emu.o -nostdlib -o emu.elf
+all:	emu.hex emu2.hex
 
 emu.o: Makefile emu.S
+emu2.o: Makefile emu2.S
 
 flash:	all
 	$(AVRDUDE) -U flash:w:firefly.hex:i
@@ -63,16 +63,13 @@ flash:	all
 #fuse:
 #	$(AVRDUDE) $(FUSES)
 
-readfuse:
-	$(AVRDUDE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
+#readfuse:
+#	$(AVRDUDE) -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h -U lock:r:-:h -v
 
 clean:
-	rm -f *.o
+	rm -f *.o *.lst
 
 clobber: clean
 	rm -f *.elf *.hex .errs.t
-
-disasm:	emu.elf
-	avr-objdump -d emu.elf
 
 # End
