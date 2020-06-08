@@ -38,7 +38,7 @@ AS	= avr-as
 	$(CXX) -c $(OPTS) $< -o $@
 
 .S.o:
-	$(CC) -x assembler-with-cpp -c -nostdlib $(DEFNS) $< -o $@
+	$(CC) -x assembler-with-cpp -c -Wa,-adhlns=emu.lst -nostdlib $(DEFNS) $< -o $@
 
 .c.s:
 	$(CC) -S $< -o $@
@@ -47,7 +47,8 @@ AS	= avr-as
 	@rm -f $*.hex
 	avr-objcopy -j .text -j .data -O ihex $< $@
 	avr-size --format=avr --mcu=$(DEVICE) $<
-	avr-objdump -D emu.elf
+	@sed '1,/.section .text/d' <emu.lst >emu.l && mv emu.l emu.lst
+#	avr-objdump -D emu.elf
 
 all:	emu.hex
 
